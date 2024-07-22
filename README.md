@@ -1,0 +1,2 @@
+# 24-ETRI-FASHION_HOW
+2024 ETRI 자율성장 인공지능 경진대회: FASHION-HOW 시즌 5
