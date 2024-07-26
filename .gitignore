@@ -164,6 +164,8 @@ cython_debug/
 # Data
 sub_task3/data/*
 sub_task3/sstm_v0p5_deploy/*
+sub_task1/data/*
+sub_task1/baseline/save/*
 
 # Model
 sub_task3/baseline/model/*
