@@ -3,11 +3,15 @@ import os
 import json
 import pandas as pd
 from datetime import datetime
+from pprint import pprint
 
 class BaseConfig():
     def __init__(self,
-                df_info:dict={
+                info:dict={
                     'path': 'image_name',
+                    'label_1_num': 7,
+                    'label_2_num': 6,
+                    'label_3_num': 3,
                     'label_1' : 'Daily',
                     'label_2' : 'Gender',
                     'label_3' : 'Embellishment'
@@ -34,7 +38,7 @@ class BaseConfig():
         self.TRAIN_DF = os.path.join(self.DATA_PATH, train_csv)
         self.VAL_DF = os.path.join(self.DATA_PATH, val_csv)
 
-        self.DF_INFO = df_info
+        self.INFO = info
 
         #train setting
         self.SEED = seed
@@ -70,3 +74,11 @@ class BaseConfig():
             json.dump(config_dict, json_file, indent=4)
             
         return (json_save_name)
+    
+    def print_config(self):
+        print("="*100)
+        print("CONFIG SETTING !!!")
+        print("="*100)
+        config_dict = {key: value for key, value in self.__dict__.items() if not key.startswith('_')}
+        pprint(config_dict)
+        print("="*100)

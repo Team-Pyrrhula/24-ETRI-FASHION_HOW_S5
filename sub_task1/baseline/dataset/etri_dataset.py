@@ -19,10 +19,10 @@ class ETRI_Dataset():
             self.df = pd.read_csv(config.VAL_DF)
             self.image_path = 'val'
 
-        self.label_1 = self.df[config.DF_INFO['label_1']].values
-        self.label_2 = self.df[config.DF_INFO['label_2']].values
-        self.label_3 = self.df[config.DF_INFO['label_3']].values
-        self.images = self.df[config.DF_INFO['path']].values
+        self.label_1 = self.df[config.INFO['label_1']].values
+        self.label_2 = self.df[config.INFO['label_2']].values
+        self.label_3 = self.df[config.INFO['label_3']].values
+        self.images = self.df[config.INFO['path']].values
 
         self.config = config
         self.train_mode = train_mode
@@ -36,7 +36,7 @@ class ETRI_Dataset():
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         if self.transform is not None:
-            image = self.transform(image=image)["image"]
+            image = self.transform(image)
 
         if self.train_mode:
             label_1 = self.label_1[idx]
