@@ -182,8 +182,8 @@ def main():
     train_dataset = ETRI_Dataset(config=config, train_mode=True, transform=transform, types='train')
     val_dataset = ETRI_Dataset(config=config, train_mode=True, transform=transform, types='val')
 
-    train_loader = DataLoader(train_dataset, batch_size=config.TRAIN_BATCH_SIZE)
-    val_loader = DataLoader(val_dataset, batch_size=config.VAL_BATCH_SIZE)
+    train_loader = DataLoader(train_dataset, batch_size=config.TRAIN_BATCH_SIZE, num_workers=config.NUM_WORKERS)
+    val_loader = DataLoader(val_dataset, batch_size=config.VAL_BATCH_SIZE, num_workers=config.NUM_WORKERS)
 
     model = ETRI_model(config).to(config.DEVICE)
     criterion = nn.CrossEntropyLoss().to(config.DEVICE)
