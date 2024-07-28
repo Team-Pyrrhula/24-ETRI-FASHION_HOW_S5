@@ -16,6 +16,10 @@ def parser_arguments():
     parser.add_argument("--resize", type=int, default=224, help="img resize size")
     parser.add_argument("--per_iter", type=float, default=0.3, help="print pipeline iter nums")
     parser.add_argument("--save_path", type=str, default='save', help="save path")
+    
+    # wandb
+    parser.add_argument("--wandb", action='store_true', help='wandb use flag')
+    parser.add_argument("--project_name", type=str, default='ETRI_sub-task_1', help='wandb project name')
 
     args = parser.parse_args()
     return args

@@ -15,7 +15,7 @@ train.py <parser.py에 있는 args 설정>
 
 `windows`
 ```bash
-mkdir -p <저장할 경로 (파일 이름 제외)> && python ./train.py <args 설정> | Tee-Object -FilePath <저장할 경로 및 파일이름을 합친 경로>
+New-Item -Path <저장경로 (파일 이름 제외)> -ItemType Directory -Force; python ./train.py <args 설정> | Tee-Object -FilePath <저장할 경로 및 파일이름을 합친 경로>
 ```
 `linux && mac`
 ```bash
@@ -32,8 +32,10 @@ mkdir -p <저장할 경로 (파일 이름 제외)> && python ./train.py <args �
 `--val_batch_size` : val 배치 사이즈  
 `--lr` : 학습률  
 `--resize` : 입력 이미지 사이즈  
-`--per_iter` : train & val 과정에서 중간 loss 값 출력 주기 (ex 0.2 == 20% 주기로 출력) 
+`--per_iter` : train & val 과정에서 중간 loss 값 출력 주기 (ex 0.2 == 20% 주기로 출력)  
 `--save_path` : 저장 경로  
+`--wandb` : wandb 사용 여부  
+`--project_name` : wandb 프로젝트 이름  
 
 ## 진행 사항 
  [✔️] `Config`   
@@ -42,7 +44,7 @@ mkdir -p <저장할 경로 (파일 이름 제외)> && python ./train.py <args �
  [✔️] `models`  
  [✔️] `train loops`  
  [✔️] `val loops`  
-
- [❌] `wandb` 연동 기능  
+ [✔️] `wandb` 연동 기능  
+ 
  [❌] `Metric`, `Loose`, `Optimizer`, `Scheduler` 설정 기능  
  [❌] `Augmentaion` 시각화 기능

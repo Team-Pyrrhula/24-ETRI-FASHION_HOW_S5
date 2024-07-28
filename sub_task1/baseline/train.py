@@ -17,6 +17,7 @@ import numpy as np
 from sklearn.metrics import f1_score, accuracy_score
 from pprint import pprint
 import os
+import wandb
 
 def train_run(
         model,
@@ -26,6 +27,7 @@ def train_run(
         optimizer,
         scheduler,
         config,
+        args
         ):
     
     epochs = config.EPOCHS
@@ -75,6 +77,15 @@ def train_run(
         print(f'EPOCH[{epoch+1}] MEAN DAILY LOSS : {epoch_daily_loss:.4f}')
         print(f'EPOCH[{epoch+1}] MEAN GENDER LOSS : {epoch_gender_loss:.4f}')
         print(f'EPOCH[{epoch+1}] MEAN embel LOSS : {epoch_embel_loss:.4f}')
+
+        #wandb logging save
+        if args.wandb:
+            wandb.log({
+                "Train Mean Loss" : epoch_loss,
+                "Train Mean Daily Loss" : epoch_daily_loss,
+                "Train Mean Gender Loss" : epoch_gender_loss,
+                "Train Mean Embel Loss" : epoch_embel_loss,
+            })
 
         scheduler.step() # update scheduler
 
@@ -132,21 +143,24 @@ def train_run(
             epoch_val_embel_loss = val_embel_loss / len(val_loader)
 
             metrics = {
-            'loss' : epoch_val_loss,
-            'daily_acc' : np.mean(val_acc['daily']),
-            'gender_acc': np.mean(val_acc['gender']),
-            'embel_acc': np.mean(val_acc['embel']),
-            'daily_f1' : np.mean(val_f1['daily']),
-            'gender_f1' : np.mean(val_f1['gender']),
-            'embel_f1' : np.mean(val_f1['embel']),
-            'daily_loss' : epoch_val_daily_loss,
-            'gender_loss' : epoch_val_gender_loss,
-            'embel_loss' : epoch_val_embel_loss,
+            'val_loss' : epoch_val_loss,
+            'val_daily_acc' : np.mean(val_acc['daily']),
+            'val_gender_acc': np.mean(val_acc['gender']),
+            'val_embel_acc': np.mean(val_acc['embel']),
+            'val_daily_f1' : np.mean(val_f1['daily']),
+            'val_gender_f1' : np.mean(val_f1['gender']),
+            'val_embel_f1' : np.mean(val_f1['embel']),
+            'val_daily_loss' : epoch_val_daily_loss,
+            'val_gender_loss' : epoch_val_gender_loss,
+            'val_embel_loss' : epoch_val_embel_loss,
             }
+            
+            # wandb logging
+            wandb.log(metrics)
 
             print('++++++ VAL METRICS ++++++')
             pprint(metrics)
-            val_metric = (metrics['daily_acc'] + metrics['gender_acc'] + metrics['embel_acc']) / 3
+            val_metric = (metrics['val_daily_acc'] + metrics['val_gender_acc'] + metrics['val_embel_acc']) / 3
             print(f"Val MEAN METRIC : {val_metric}")
 
             print("+"*100)
@@ -178,6 +192,15 @@ def main():
     config.save_to_json()
     config.print_config()
 
+    if (args.wandb):
+        #project name & run name setting
+        run_name = f'{config.MODEL}_{config.TIME}'
+        wandb.init(project=args.project_name, name=run_name)
+
+        #wandb config save
+        wandb_config = {key: value for key, value in config.__dict__.items() if not key.startswith('_')}
+        wandb.config.update(wandb_config)
+
     transform = BaseAug()
     train_dataset = ETRI_Dataset(config=config, train_mode=True, transform=transform, types='train')
     val_dataset = ETRI_Dataset(config=config, train_mode=True, transform=transform, types='val')
@@ -190,7 +213,16 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=config.LR)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
 
-    train_run(model, train_loader, val_loader, criterion, optimizer, scheduler, config)
+    if args.wandb:
+        wandb.config.update({
+            'criterion' : 'CrossEntropyLoss',
+            'optimizer' : 'Adam',
+            'scheduler' : 'StrepLR',
+        })
+
+    train_run(model, train_loader, val_loader, criterion, optimizer, scheduler, config, args)
+    if args.wandb:
+        wandb.finish()
 
 if __name__ == '__main__':
     main()
