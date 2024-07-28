@@ -14,6 +14,9 @@ def parser_arguments():
     parser.add_argument("--val_batch_size", type=int, default=128, help="val batch size")
     parser.add_argument("--lr", type=float, default=0.0001, help="learning rate")
     parser.add_argument("--resize", type=int, default=224, help="img resize size")
+    parser.add_argument("--criterion", type=str, default="CrossEntropyLoss", help="train criterion")
+    parser.add_argument("--optimizer", type=str, default="Adam", help="train optimzier")
+    parser.add_argument("--scheduler", type=str, default="StepLR", help="train scheduler")
     parser.add_argument("--per_iter", type=float, default=0.3, help="print pipeline iter nums")
     parser.add_argument("--save_path", type=str, default='save', help="save path")
     

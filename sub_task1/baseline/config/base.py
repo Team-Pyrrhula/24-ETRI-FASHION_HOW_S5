@@ -27,6 +27,9 @@ class BaseConfig():
                 train_batch_size:int = 16,
                 val_batch_size:int = 128,
                 lr:float = 0.0001,
+                criterion:str = 'CrossEntropyLoss',
+                optimizer:str = 'Adam',
+                scheduler:str = 'StepLR',
                 resize:int = 224,
                 per_iter:float = 0.3,
                 save_path:str = 'save'
@@ -52,6 +55,11 @@ class BaseConfig():
         self.RESIZE = resize
         self.TRAIN_METRICS_ITER = int((len(pd.read_csv(self.TRAIN_DF)) // self.TRAIN_BATCH_SIZE) * per_iter)
         self.VAL_METRICS_ITER = int((len(pd.read_csv(self.VAL_DF)) // self.VAL_BATCH_SIZE) * per_iter)
+        self.OPTIMIZER = optimizer
+        self.CRITERION = criterion
+        self.SCHEDULER = scheduler
+        self.SCHEDULER_STEP_SIZE = 5
+        self.SCHEDULER_GAMMA = 0.1 
 
         #save info
         self.SAVE_PATH = save_path

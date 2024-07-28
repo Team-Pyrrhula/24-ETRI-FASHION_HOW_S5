@@ -45,6 +45,6 @@ mkdir -p <저장할 경로 (파일 이름 제외)> && python ./train.py <args �
  [✔️] `train loops`  
  [✔️] `val loops`  
  [✔️] `wandb` 연동 기능  
- 
- [❌] `Metric`, `Loose`, `Optimizer`, `Scheduler` 설정 기능  
+ [✔️] `Metric`, `Loose`, `Optimizer`, `Scheduler` 설정 기능  
+    - optimizer, loose, scheduler의 변수의 경우 이름을 지정해서 (ex - lr=lr) 넘겨줘야함   
  [❌] `Augmentaion` 시각화 기능

@@ -7,12 +7,15 @@ from config import BaseConfig
 from transform import BaseAug
 from dataset import ETRI_Dataset
 from model import ETRI_model
+from loose import create_criterion
+from optimizer import create_optimizer
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
+from importlib import import_module
 import numpy as np
 from sklearn.metrics import f1_score, accuracy_score
 from pprint import pprint
@@ -186,6 +189,9 @@ def main():
         val_batch_size=args.val_batch_size,
         lr=args.lr,
         resize=args.resize,
+        criterion=args.criterion,
+        optimizer=args.optimizer,
+        scheduler=args.scheduler,
         per_iter=args.per_iter,
         save_path=args.save_path
     )
@@ -209,17 +215,20 @@ def main():
     val_loader = DataLoader(val_dataset, batch_size=config.VAL_BATCH_SIZE, num_workers=config.NUM_WORKERS)
 
     model = ETRI_model(config).to(config.DEVICE)
-    criterion = nn.CrossEntropyLoss().to(config.DEVICE)
-    optimizer = torch.optim.Adam(model.parameters(), lr=config.LR)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
 
-    if args.wandb:
-        wandb.config.update({
-            'criterion' : 'CrossEntropyLoss',
-            'optimizer' : 'Adam',
-            'scheduler' : 'StrepLR',
-        })
-
+    criterion = create_criterion(config.CRITERION).to(config.DEVICE)
+    optimizer = create_optimizer(
+                config.OPTIMIZER,
+                params = model.parameters(),
+                lr = config.LR
+                )
+    scheduler= getattr(import_module("torch.optim.lr_scheduler"), config.SCHEDULER)
+    scheduler = scheduler(
+        optimizer,
+        step_size=config.SCHEDULER_STEP_SIZE, 
+        gamma=config.SCHEDULER_GAMMA,
+    )
+    
     train_run(model, train_loader, val_loader, criterion, optimizer, scheduler, config, args)
     if args.wandb:
         wandb.finish()
