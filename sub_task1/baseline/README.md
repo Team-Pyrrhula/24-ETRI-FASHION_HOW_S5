@@ -36,6 +36,7 @@ mkdir -p <저장할 경로 (파일 이름 제외)> && python ./train.py <args �
 `--save_path` : 저장 경로  
 `--wandb` : wandb 사용 여부  
 `--project_name` : wandb 프로젝트 이름  
+`--model_save_type` : model save type -> script, origin  
 
 ## 진행 사항 
  [✔️] `Config`   

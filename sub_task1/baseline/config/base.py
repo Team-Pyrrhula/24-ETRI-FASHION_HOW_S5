@@ -32,7 +32,8 @@ class BaseConfig():
                 scheduler:str = 'StepLR',
                 resize:int = 224,
                 per_iter:float = 0.3,
-                save_path:str = 'save'
+                save_path:str = 'save',
+                model_save_type:str = 'origin',
                 ):
         # info
         self.BASE_PATH = base_path
@@ -63,6 +64,7 @@ class BaseConfig():
 
         #save info
         self.SAVE_PATH = save_path
+        self.MODEL_SAVE_TYPE = model_save_type
 
         now = datetime.now()
         self.TIME = now.strftime("%Y_%m_%d_%H_%M")

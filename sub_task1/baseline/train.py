@@ -2,7 +2,7 @@ import logging
 # 모든 로깅 출력을 비활성화
 logging.disable(logging.CRITICAL)
 
-from utils import parser_arguments
+from utils import parser_arguments, model_save
 from config import BaseConfig
 from transform import BaseAug
 from dataset import ETRI_Dataset
@@ -159,7 +159,8 @@ def train_run(
             }
             
             # wandb logging
-            wandb.log(metrics)
+            if args.wandb:
+                wandb.log(metrics)
 
             print('++++++ VAL METRICS ++++++')
             pprint(metrics)
@@ -171,7 +172,7 @@ def train_run(
             save_path = os.path.join(config.SAVE_PATH, 'model', config.MODEL, config.TIME)
             os.makedirs(save_path, exist_ok=True)
             if (val_metric  > best_val_metric):
-                torch.save(model.state_dict(), os.path.join(save_path, f'{epoch}_{val_metric:.4f}.pth'))
+                model_save(config, save_path, model, epoch, val_metric)
                 print(f'Save Model {val_metric:.4f} in : {save_path}')
                 best_val_metric = val_metric
 
@@ -193,7 +194,8 @@ def main():
         optimizer=args.optimizer,
         scheduler=args.scheduler,
         per_iter=args.per_iter,
-        save_path=args.save_path
+        save_path=args.save_path,
+        model_save_type=args.model_save_type
     )
     config.save_to_json()
     config.print_config()

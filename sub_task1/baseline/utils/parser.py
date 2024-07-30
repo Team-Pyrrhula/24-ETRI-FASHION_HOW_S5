@@ -19,6 +19,7 @@ def parser_arguments():
     parser.add_argument("--scheduler", type=str, default="StepLR", help="train scheduler")
     parser.add_argument("--per_iter", type=float, default=0.3, help="print pipeline iter nums")
     parser.add_argument("--save_path", type=str, default='save', help="save path")
+    parser.add_argument("--model_save_type", type=str, default='origin', help="torch model save method [script, origin]")
     
     # wandb
     parser.add_argument("--wandb", action='store_true', help='wandb use flag')
