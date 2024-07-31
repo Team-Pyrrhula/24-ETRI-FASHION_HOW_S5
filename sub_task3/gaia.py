@@ -27,34 +27,41 @@ SOFTWARE.
 Update: 2023.02.15.
 '''
 
-
+# torch
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import numpy as np
+from torch.utils.data import TensorDataset, DataLoader
+
+# built-in library
 import os
+import joblib
+import shutil
+import time
 import timeit
 import re
-from torch.utils.data import TensorDataset, DataLoader
 from tqdm import tqdm
+import argparse
+
+# external library
+import numpy as np
 from scipy import stats
+
+# custom modules
 from file_io import *
 from requirement import *
 from policy import *
 from si import *
-import joblib
-import shutil
-import time
 
-# of items in fashion coordination      
-NUM_ITEM_IN_COORDI = 4
-# of metadata features    
-NUM_META_FEAT = 4
-# of fashion coordination candidates        
-NUM_RANKING = 3
-# image feature size 
-IMG_FEAT_SIZE = 4096
-# SI parameter
+
+### global settings ###
+NUM_ITEM_IN_COORDI = 4 # of items in fashion coordination      
+NUM_META_FEAT = 4 # of metadata features    
+NUM_RANKING = 3 # of fashion coordination candidates        
+IMG_FEAT_SIZE = 4096 # image feature size 
+
+# TODO: parameter 관리 방식 변경
+### SI parameter ###
 si_c = 0.1
 epsilon = 0.001
 
@@ -92,9 +99,14 @@ class Model(nn.Module):
 
 class gAIa(object):
     """ Class for AI fashion coordinator """
-    def __init__(self, args, device, name='gAIa'):
+    def __init__(self, args: argparse.Namespace, device: torch.device, name='gAIa'):
         """
-        initialize
+        실험에 필요한 변수, 데이터, 모델 등을 생성하고 관리합니다.
+
+        Args:
+            args (argparse.Namespace): 터미널에서 입력된 실험 인자입니다.
+            device (torch.device): 학습 및 추론 시 사용할 장치입니다.
+            name (str, optional): _description_. Defaults to 'gAIa'. # deprecated
         """
         self._device = device
         self._batch_size = args.batch_size

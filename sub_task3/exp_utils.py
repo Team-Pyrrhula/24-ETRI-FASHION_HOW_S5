@@ -25,6 +25,7 @@ def set_seed(seed: int=2024) -> None:
     random.seed(seed)
 
 
+# TODO: 서버 제출 시 본 함수가 동작하지 않도록 예외 처리할 것
 def save_results(exp_name: str, score: float, tr_task_id: str, tt_task_id: str,
                  mode: str = 'eval', save_path: str = './results') -> None:
     """실험 결과를 csv 파일에 누적합니다.
