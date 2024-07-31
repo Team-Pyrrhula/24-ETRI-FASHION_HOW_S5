@@ -7,9 +7,12 @@
 # $7: --model_file
 # $8: filename of $7 (loaded file after task#1)
 
-CUDA_VISIBLE_DEVICES="0" python3 ./main.py --mode train \
-                                     --in_file_fashion ../data/mdata.wst.txt.2023.08.23 \
-                                     --subWordEmb_path ../sstm_v0p5_deploy/sstm_v4p49_np_n36134_d128.dat \
+CUDA_VISIBLE_DEVICES="0" python3 ./main.py --exp_name baseline \
+                                     --seed 2024 \
+                                     --mode train \
+                                     --task_ids /1/1 \
+                                     --in_file_fashion ../aif/data/mdata.wst.txt.2023.08.23 \
+                                     --subWordEmb_path ../aif/sstm_v0p5_deploy/sstm_v4p49_np_n36134_d128.dat \
                                      --mem_size 16 \
                                      --key_size 300 \
                                      --hops 3 \

@@ -4,8 +4,8 @@
 # $4: path for loading trained model
 
 CUDA_VISIBLE_DEVICES="0" python3 ./main.py --mode test \
-                                   --in_file_fashion ../data/mdata.wst.txt.2023.08.23 \
-                                   --subWordEmb_path ../sstm_v0p5_deploy/sstm_v4p49_np_n36134_d128.dat \
+                                   --in_file_fashion ../aif/data/mdata.wst.txt.2023.08.23 \
+                                   --subWordEmb_path ../aif/sstm_v0p5_deploy/sstm_v4p49_np_n36134_d128.dat \
                                    --model_file gAIa-final.pt \
                                    --mem_size 16 \
                                    --key_size 300 \

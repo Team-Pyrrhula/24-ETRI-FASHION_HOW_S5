@@ -162,8 +162,7 @@ cython_debug/
 #.idea/
 
 # Data
-sub_task3/data/*
-sub_task3/sstm_v0p5_deploy/*
+aif/
 sub_task1/data/*
 sub_task1/baseline/save/*
 
