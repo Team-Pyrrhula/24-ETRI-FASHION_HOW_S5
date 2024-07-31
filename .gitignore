@@ -168,4 +168,4 @@ sub_task1/data/*
 sub_task1/baseline/save/*
 
 # Model
-sub_task3/baseline/model/*
+sub_task3/model/*
