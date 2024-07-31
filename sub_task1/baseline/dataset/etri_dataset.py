@@ -18,21 +18,29 @@ class ETRI_Dataset():
         elif types == 'val':
             self.df = pd.read_csv(config.VAL_DF)
             self.image_path = 'val'
+        elif types == 'test':
+            self.df = pd.read_csv(config.TEST_DF)
+            self.image_path = '/aif/Dataset/test'
 
-        self.label_1 = self.df[config.INFO['label_1']].values
-        self.label_2 = self.df[config.INFO['label_2']].values
-        self.label_3 = self.df[config.INFO['label_3']].values
+        if train_mode:
+            self.label_1 = self.df[config.INFO['label_1']].values
+            self.label_2 = self.df[config.INFO['label_2']].values
+            self.label_3 = self.df[config.INFO['label_3']].values
         self.images = self.df[config.INFO['path']].values
 
         self.config = config
         self.train_mode = train_mode
         self.transform = transform
+        self.types = types
 
     def __len__(self):
         return (len(self.df))
     
     def __getitem__(self, idx):
-        image = cv2.imread(os.path.join(self.config.DATA_PATH, self.image_path, self.images[idx]))
+        if self.train_mode == 'test':
+            image = cv2.imread(os.path.join(self.image_path, self.images[idx]))
+        else:
+            image = cv2.imread(os.path.join(self.config.DATA_PATH, self.image_path, self.images[idx]))
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         if self.transform is not None:

@@ -20,10 +20,21 @@ def parser_arguments():
     parser.add_argument("--per_iter", type=float, default=0.3, help="print pipeline iter nums")
     parser.add_argument("--save_path", type=str, default='save', help="save path")
     parser.add_argument("--model_save_type", type=str, default='origin', help="torch model save method [script, origin]")
-    
+    parser.add_argument("--val_metric", type=str, default='f1', help='val metric')
+
     # wandb
     parser.add_argument("--wandb", action='store_true', help='wandb use flag')
     parser.add_argument("--project_name", type=str, default='ETRI_sub-task_1', help='wandb project name')
 
+    args = parser.parse_args()
+    return args
+
+def val_parser_arguments():
+    parser = argparse.ArgumentParser(description="Val parser")
+    parser.add_argument("--model", type=str, help='inference model name')
+    parser.add_argument("--save_path", type=str, default='./save/', help='trained model save path')
+    parser.add_argument("--model_path", type=str, help='saved model path')
+    parser.add_argument("--resize", type=int, default=224, help='model input size')
+    
     args = parser.parse_args()
     return args

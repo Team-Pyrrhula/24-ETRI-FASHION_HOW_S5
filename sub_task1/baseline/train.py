@@ -164,8 +164,15 @@ def train_run(
 
             print('++++++ VAL METRICS ++++++')
             pprint(metrics)
-            val_metric = (metrics['val_daily_acc'] + metrics['val_gender_acc'] + metrics['val_embel_acc']) / 3
+            val_metric = (metrics[f'val_daily_{config.VAL_METRIC}'] + metrics[f'val_gender_{config.VAL_METRIC}'] + metrics[f'val_embel_{config.VAL_METRIC}']) / 3
             print(f"Val MEAN METRIC : {val_metric}")
+
+            # wandb logging
+            val_metric_logging = {
+                f'val_metric_{config.VAL_METRIC}' : val_metric
+            }
+            if args.wandb:
+                wandb.log(val_metric_logging)
 
             print("+"*100)
 
@@ -195,7 +202,8 @@ def main():
         scheduler=args.scheduler,
         per_iter=args.per_iter,
         save_path=args.save_path,
-        model_save_type=args.model_save_type
+        model_save_type=args.model_save_type,
+        val_metric=args.val_metric
     )
     config.save_to_json()
     config.print_config()
