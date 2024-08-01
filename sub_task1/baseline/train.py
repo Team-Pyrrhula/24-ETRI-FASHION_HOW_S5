@@ -164,18 +164,29 @@ def train_run(
 
             print('++++++ VAL METRICS ++++++')
             pprint(metrics)
-            val_metric = (metrics[f'val_daily_{config.VAL_METRIC}'] + metrics[f'val_gender_{config.VAL_METRIC}'] + metrics[f'val_embel_{config.VAL_METRIC}']) / 3
-            print(f"Val MEAN METRIC : {val_metric}")
+            val_acc_mean = (metrics['val_daily_acc'] + metrics['val_gender_acc'] + metrics['val_embel_acc']) / 3
+            val_f1_mean =  (metrics['val_daily_f1'] + metrics['val_gender_f1'] + metrics['val_embel_f1']) / 3
+            
+            print(f'Val F1 mean : {val_f1_mean}')
+            print(f'Val ACC mean : {val_acc_mean}')
+
+            # save val metric setting
+            if (config.VAL_METRIC == 'f1'):
+                val_metric = val_f1_mean
+            elif (config.VAL_METRIC == 'acc'):
+                val_metric = val_acc_mean
 
             # wandb logging
             val_metric_logging = {
-                f'val_metric_{config.VAL_METRIC}' : val_metric
+                'val_metric_f1' : val_f1_mean,
+                'val_metric_acc' : val_acc_mean,
             }
             if args.wandb:
                 wandb.log(val_metric_logging)
 
             print("+"*100)
 
+            #save model by val metrics
             save_path = os.path.join(config.SAVE_PATH, 'model', config.MODEL, config.TIME)
             os.makedirs(save_path, exist_ok=True)
             if (val_metric  > best_val_metric):
