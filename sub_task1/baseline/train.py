@@ -2,9 +2,9 @@ import logging
 # 모든 로깅 출력을 비활성화
 logging.disable(logging.CRITICAL)
 
-from utils import parser_arguments, model_save
+from utils import parser_arguments, model_save, save2img
 from config import BaseConfig
-from transform import BaseAug
+from transform import BaseAug, CustomAug
 from dataset import ETRI_Dataset
 from model import ETRI_model
 from loose import create_criterion
@@ -50,6 +50,9 @@ def train_run(
         for imgs, l1, l2, l3 in tqdm(train_loader, desc=f'Epoch {epoch + 1}/{epochs}', leave=False):
             imgs, l1, l2, l3 = imgs.to(config.DEVICE), l1.to(config.DEVICE), l2.to(config.DEVICE), l3.to(config.DEVICE)
             optimizer.zero_grad()
+
+            if args.save_img:
+                save2img(imgs.cpu(), epoch, save_path=config.SAVE_PATH)
 
             out_daily, out_gender, out_embel = model(imgs)
             loss_daily = criterion(out_daily, l1)
@@ -189,10 +192,10 @@ def train_run(
             #save model by val metrics
             save_path = os.path.join(config.SAVE_PATH, 'model', config.MODEL, config.TIME)
             os.makedirs(save_path, exist_ok=True)
-            if (val_metric  > best_val_metric):
-                model_save(config, save_path, model, epoch, val_metric)
-                print(f'Save Model {val_metric:.4f} in : {save_path}')
-                best_val_metric = val_metric
+            # if (val_metric  > best_val_metric):
+            model_save(config, save_path, model, epoch, val_metric)
+            print(f'Save Model {val_metric:.4f} in : {save_path}')
+            best_val_metric = val_metric
 
 def main():
     args = parser_arguments()
@@ -228,9 +231,11 @@ def main():
         wandb_config = {key: value for key, value in config.__dict__.items() if not key.startswith('_')}
         wandb.config.update(wandb_config)
 
-    transform = BaseAug()
-    train_dataset = ETRI_Dataset(config=config, train_mode=True, transform=transform, types='train')
-    val_dataset = ETRI_Dataset(config=config, train_mode=True, transform=transform, types='val')
+    train_transform = BaseAug()
+    val_transform = BaseAug()
+
+    train_dataset = ETRI_Dataset(config=config, train_mode=True, transform=train_transform, types='train')
+    val_dataset = ETRI_Dataset(config=config, train_mode=True, transform=val_transform, types='val')
 
     train_loader = DataLoader(train_dataset, batch_size=config.TRAIN_BATCH_SIZE, num_workers=config.NUM_WORKERS)
     val_loader = DataLoader(val_dataset, batch_size=config.VAL_BATCH_SIZE, num_workers=config.NUM_WORKERS)

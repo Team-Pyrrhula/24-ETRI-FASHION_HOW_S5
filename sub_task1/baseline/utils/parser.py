@@ -21,7 +21,7 @@ def parser_arguments():
     parser.add_argument("--save_path", type=str, default='save', help="save path")
     parser.add_argument("--model_save_type", type=str, default='origin', help="torch model save method [script, origin]")
     parser.add_argument("--val_metric", type=str, default='f1', help='val metric')
-
+    parser.add_argument("--save_img", action='store_true', help='save_aug_img')
     # wandb
     parser.add_argument("--wandb", action='store_true', help='wandb use flag')
     parser.add_argument("--project_name", type=str, default='ETRI_sub-task_1', help='wandb project name')
