@@ -1,0 +1,10 @@
+# Data
+baseline/data
+baseline/save
+baseline/wandb
+
+# Model
+save
+
+# task ipynb
+baseline/task.ipynb
