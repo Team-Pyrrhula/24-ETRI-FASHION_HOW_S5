@@ -1,3 +1,4 @@
+import os
 import timm
 import torch
 import argparse
@@ -11,4 +12,8 @@ if __name__ == '__main__':
     model = args.model
     model_name = model.split("/")[1]
     model = timm.create_model(model, pretrained=True)
-    torch.save(model.state_dict(), f"./save/pretrained/{model_name}.pth")
+    model_path = f"./save/pretrained/{model_name}.pth"
+    
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    
+    torch.save(model.state_dict(), model_path)
