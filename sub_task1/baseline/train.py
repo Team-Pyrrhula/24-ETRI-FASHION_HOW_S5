@@ -231,7 +231,7 @@ def main():
         wandb_config = {key: value for key, value in config.__dict__.items() if not key.startswith('_')}
         wandb.config.update(wandb_config)
 
-    train_transform = BaseAug()
+    train_transform = CustomAug()
     val_transform = BaseAug()
 
     train_dataset = ETRI_Dataset(config=config, train_mode=True, transform=train_transform, types='train')
