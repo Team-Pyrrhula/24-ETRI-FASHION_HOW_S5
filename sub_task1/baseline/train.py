@@ -232,7 +232,6 @@ def sampler_val_run(model,
     model.eval()
     with torch.no_grad():
         for key, val_loader in val_dataloader_dict.items():
-            print(key)
             lens += len(val_loader)
             for imgs, labels in tqdm(val_loader, desc=f'{key}_validation_loops', leave=False):
                 imgs, labels = imgs.to(config.DEVICE), labels.to(config.DEVICE)
