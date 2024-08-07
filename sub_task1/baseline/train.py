@@ -1,41 +1,30 @@
-import logging
-# 모든 로깅 출력을 비활성화
-logging.disable(logging.CRITICAL)
-
-from utils import parser_arguments, model_save, save2img
-from config import BaseConfig
-from transform import BaseAug, CustomAug
-from dataset import ETRI_Dataset
-from model import ETRI_model
-from loose import create_criterion
-from optimizer import create_optimizer
-from torch.utils.data import DataLoader
+from utils import model_save, save2img
 from tqdm import tqdm
 
-import torch.nn as nn
 import torch
 import torch.nn.functional as F
-from importlib import import_module
 import numpy as np
 from sklearn.metrics import f1_score, accuracy_score
 from pprint import pprint
 import os
-import wandb
 
 def train_run(
         model,
         train_loader,
-        val_loader,
+        val_dataloader_dict,
         criterion,
         optimizer,
         scheduler,
         config,
-        args
+        args,
+        wandb
         ):
     
     epochs = config.EPOCHS
-    best_val_metric = 0
-
+    best_log = {
+        'best_val_metric' : 0,
+        'best_epoch' : 0,
+    }
     print("+++ TRAIN START +++")
     for epoch in range(epochs):
         model.train()
@@ -94,170 +83,225 @@ def train_run(
             })
 
         scheduler.step() # update scheduler
-
         #val
-        print(f"+++ [EPOCH : {epoch + 1}] - VAL START +++")
-        val_loss = 0
-        val_daily_loss = 0.0
-        val_gender_loss = 0.0
-        val_embel_loss = 0.0
+        ## 1개라면 일반 val
+        if len(val_dataloader_dict) == 1:
+            metrics, best_log = val_run(model, val_dataloader_dict['all'], criterion, config, epoch, best_log)
+        ## 1개보다 많다면 sampler_val
+        else:
+            metrics, best_log = sampler_val_run(model, val_dataloader_dict, criterion, config, epoch, best_log)
+        #val score wnadb_log
 
-        val_acc = {
-            'daily' : [],
-            'gender' : [],
-            'embel' : [],
+        if args.wandb:
+            wandb.log(metrics)
+
+    return (best_log)
+
+def val_run(model,
+            val_loader,
+            criterion,
+            config,
+            epoch,
+            best_log,
+        ):
+    print(f"+++ [EPOCH : {epoch + 1}] - VAL START +++")
+
+    losses = {
+        'val_loss':0,
+        'val_daily_loss':0.0,
+        'val_gender_loss':0.0,
+        'val_embel_loss':0.0,
+    }
+    val_acc = {
+        'daily' : [],
+        'gender' : [],
+        'embel' : [],
+    }
+    val_f1 = {
+        'daily' : [],
+        'gender' : [],
+        'embel' : [],
+    }
+
+    model.eval()
+    with torch.no_grad():
+        for imgs, l1, l2, l3 in tqdm(val_loader, desc=f'Validation Epoch {epoch + 1}', leave=False):
+            imgs, l1, l2, l3 = imgs.to(config.DEVICE), l1.to(config.DEVICE), l2.to(config.DEVICE), l3.to(config.DEVICE)
+            
+            out_daily, out_gender, out_embel = model(imgs)
+
+            daily_pred = torch.argmax(F.softmax(out_daily, dim=1), dim=1)
+            gender_pred = torch.argmax(F.softmax(out_gender, dim=1), dim=1)
+            embel_pred = torch.argmax(F.softmax(out_embel, dim=1), dim=1)
+
+            val_acc['daily'].append(accuracy_score(l1.cpu().numpy(), daily_pred.cpu().numpy()))
+            val_acc['gender'].append(accuracy_score(l2.cpu().numpy(), gender_pred.cpu().numpy()))
+            val_acc['embel'].append(accuracy_score(l3.cpu().numpy(), embel_pred.cpu().numpy()))
+
+            val_f1['daily'].append(f1_score(l1.cpu().numpy(), daily_pred.cpu().numpy(), average='macro', zero_division=1))
+            val_f1['gender'].append(f1_score(l2.cpu().numpy(), gender_pred.cpu().numpy(), average='macro', zero_division=1))
+            val_f1['embel'].append(f1_score(l3.cpu().numpy(), embel_pred.cpu().numpy(), average='macro', zero_division=1))
+
+            loss_daily = criterion(out_daily, l1)
+            loss_gender = criterion(out_gender, l2)
+            loss_embel = criterion(out_embel, l3)
+            loss = loss_daily + loss_gender + loss_embel
+
+            losses['val_loss'] += loss.item()
+            losses['val_daily_loss'] += loss_daily.item()
+            losses['val_gender_loss'] += loss_gender.item()
+            losses['val_embel_loss'] += loss_embel.item()
+
+        epoch_val_loss = losses['val_loss'] / len(val_loader)
+        epoch_val_daily_loss = losses['val_daily_loss'] / len(val_loader)
+        epoch_val_gender_loss = losses['val_gender_loss'] / len(val_loader)
+        epoch_val_embel_loss = losses['val_embel_loss'] / len(val_loader)
+
+        metrics = {
+        'val_loss' : epoch_val_loss,
+        'val_daily_acc' : np.mean(val_acc['daily']),
+        'val_gender_acc': np.mean(val_acc['gender']),
+        'val_embel_acc': np.mean(val_acc['embel']),
+        'val_daily_f1' : np.mean(val_f1['daily']),
+        'val_gender_f1' : np.mean(val_f1['gender']),
+        'val_embel_f1' : np.mean(val_f1['embel']),
+        'val_daily_loss' : epoch_val_daily_loss,
+        'val_gender_loss' : epoch_val_gender_loss,
+        'val_embel_loss' : epoch_val_embel_loss,
         }
+        
+        print('++++++ VAL METRICS ++++++')
+        pprint(metrics)
+        val_acc_mean = (metrics['val_daily_acc'] + metrics['val_gender_acc'] + metrics['val_embel_acc']) / 3
+        val_f1_mean =  (metrics['val_daily_f1'] + metrics['val_gender_f1'] + metrics['val_embel_f1']) / 3
+        
+        print(f'Val F1 mean : {val_f1_mean}')
+        print(f'Val ACC mean : {val_acc_mean}')
 
-        val_f1 = {
-            'daily' : [],
-            'gender' : [],
-            'embel' : [],
-        }
+        # save val metric setting
+        if (config.VAL_METRIC == 'f1'):
+            val_metric = val_f1_mean
+        elif (config.VAL_METRIC == 'acc'):
+            val_metric = val_acc_mean
 
-        model.eval()
-        with torch.no_grad():
-            for imgs, l1, l2, l3 in tqdm(val_loader, desc=f'Validation Epoch {epoch + 1}/{epochs}', leave=False):
-                imgs, l1, l2, l3 = imgs.to(config.DEVICE), l1.to(config.DEVICE), l2.to(config.DEVICE), l3.to(config.DEVICE)
+        #append acc, f1 score
+        metrics['val_metric_f1'] = val_f1_mean
+        metrics['val_metric_acc'] = val_acc_mean
+
+        print("+"*100)
+        #save model by val metrics
+        save_path = os.path.join(config.SAVE_PATH, 'model', config.MODEL, config.TIME)
+        os.makedirs(save_path, exist_ok=True)
+        model_save(config, save_path, model, epoch, val_metric)
+
+        #best logging
+        if (val_metric  > best_log['best_val_metric']):
+            best_log['best_val_metric'] = val_metric
+            best_log['best_epoch'] = epoch
+
+        #save print
+        print(f'Save Model {val_metric:.4f} in : {save_path}')
+
+    return (metrics, best_log)
+
+def sampler_val_run(model,
+                    val_dataloader_dict,
+                    criterion,
+                    config,
+                    epoch,
+                    best_log):
+    
+    print(f"+++ [EPOCH : {epoch + 1}] - VAL START +++")
+    losses = {
+        'total':0.0,
+        'daily':0.0,
+        'gender':0.0,
+        'embel':0.0,
+    }
+    val_acc = {
+        'daily' : [],
+        'gender' : [],
+        'embel' : [],
+    }
+    val_f1 = {
+        'daily' : [],
+        'gender' : [],
+        'embel' : [],
+    }
+    lens = 0
+    model.eval()
+    with torch.no_grad():
+        for key, val_loader in val_dataloader_dict.items():
+            print(key)
+            lens += len(val_loader)
+            for imgs, labels in tqdm(val_loader, desc=f'{key}_validation_loops', leave=False):
+                imgs, labels = imgs.to(config.DEVICE), labels.to(config.DEVICE)
+
+                if key == 'daily':
+                    out, _, _ = model(imgs)
+                elif key == 'gneder':
+                    _, out, = model(imgs)
+                else:
+                    _, _, out = model(imgs)
+
+                pred = torch.argmax(F.softmax(out, dim=1), dim=1)
                 
-                out_daily, out_gender, out_embel = model(imgs)
+                val_acc[key].append(accuracy_score(labels.cpu().numpy(), pred.cpu().numpy()))
+                val_f1[key].append(f1_score(labels.cpu().numpy(), pred.cpu().numpy(), average='macro', zero_division=1))
 
-                daily_pred = torch.argmax(F.softmax(out_daily, dim=1), dim=1)
-                gender_pred = torch.argmax(F.softmax(out_gender, dim=1), dim=1)
-                embel_pred = torch.argmax(F.softmax(out_embel, dim=1), dim=1)
+                loss = criterion(out, labels)
+                losses[key] += loss.item()
+                losses['total'] += loss.item()
 
-                val_acc['daily'].append(accuracy_score(l1.cpu().numpy(), daily_pred.cpu().numpy()))
-                val_acc['gender'].append(accuracy_score(l2.cpu().numpy(), gender_pred.cpu().numpy()))
-                val_acc['embel'].append(accuracy_score(l3.cpu().numpy(), embel_pred.cpu().numpy()))
+    #cal score
+    epoch_val_loss = losses['total'] / lens
+    epoch_daily_loss = losses['daily'] / len(val_dataloader_dict['daily'])
+    epoch_gender_loss = losses['gender'] / len(val_dataloader_dict['gender'])
+    epoch_embel_loss = losses['embel'] / len(val_dataloader_dict['embel'])
 
-                val_f1['daily'].append(f1_score(l1.cpu().numpy(), daily_pred.cpu().numpy(), average='macro', zero_division=1))
-                val_f1['gender'].append(f1_score(l2.cpu().numpy(), gender_pred.cpu().numpy(), average='macro', zero_division=1))
-                val_f1['embel'].append(f1_score(l3.cpu().numpy(), embel_pred.cpu().numpy(), average='macro', zero_division=1))
-
-                loss_daily = criterion(out_daily, l1)
-                loss_gender = criterion(out_gender, l2)
-                loss_embel = criterion(out_embel, l3)
-                loss = loss_daily + loss_gender + loss_embel
-
-                val_loss += loss.item()
-                val_daily_loss += loss_daily.item()
-                val_gender_loss += loss_gender.item()
-                val_embel_loss += loss_embel.item()
-
-            epoch_val_loss = val_loss / len(val_loader)
-            epoch_val_daily_loss = val_daily_loss / len(val_loader)
-            epoch_val_gender_loss = val_gender_loss / len(val_loader)
-            epoch_val_embel_loss = val_embel_loss / len(val_loader)
-
-            metrics = {
-            'val_loss' : epoch_val_loss,
-            'val_daily_acc' : np.mean(val_acc['daily']),
-            'val_gender_acc': np.mean(val_acc['gender']),
-            'val_embel_acc': np.mean(val_acc['embel']),
-            'val_daily_f1' : np.mean(val_f1['daily']),
-            'val_gender_f1' : np.mean(val_f1['gender']),
-            'val_embel_f1' : np.mean(val_f1['embel']),
-            'val_daily_loss' : epoch_val_daily_loss,
-            'val_gender_loss' : epoch_val_gender_loss,
-            'val_embel_loss' : epoch_val_embel_loss,
-            }
-            
-            # wandb logging
-            if args.wandb:
-                wandb.log(metrics)
-
-            print('++++++ VAL METRICS ++++++')
-            pprint(metrics)
-            val_acc_mean = (metrics['val_daily_acc'] + metrics['val_gender_acc'] + metrics['val_embel_acc']) / 3
-            val_f1_mean =  (metrics['val_daily_f1'] + metrics['val_gender_f1'] + metrics['val_embel_f1']) / 3
-            
-            print(f'Val F1 mean : {val_f1_mean}')
-            print(f'Val ACC mean : {val_acc_mean}')
-
-            # save val metric setting
-            if (config.VAL_METRIC == 'f1'):
-                val_metric = val_f1_mean
-            elif (config.VAL_METRIC == 'acc'):
-                val_metric = val_acc_mean
-
-            # wandb logging
-            val_metric_logging = {
-                'val_metric_f1' : val_f1_mean,
-                'val_metric_acc' : val_acc_mean,
-            }
-            if args.wandb:
-                wandb.log(val_metric_logging)
-
-            print("+"*100)
-
-            #save model by val metrics
-            save_path = os.path.join(config.SAVE_PATH, 'model', config.MODEL, config.TIME)
-            os.makedirs(save_path, exist_ok=True)
-            # if (val_metric  > best_val_metric):
-            model_save(config, save_path, model, epoch, val_metric)
-            print(f'Save Model {val_metric:.4f} in : {save_path}')
-            best_val_metric = val_metric
-
-def main():
-    args = parser_arguments()
+    metrics = {
+        'val_loss' : epoch_val_loss,
+        'val_daily_acc' : np.mean(val_acc['daily']),
+        'val_gender_acc': np.mean(val_acc['gender']),
+        'val_embel_acc': np.mean(val_acc['embel']),
+        'val_daily_f1' : np.mean(val_f1['daily']),
+        'val_gender_f1' : np.mean(val_f1['gender']),
+        'val_embel_f1' : np.mean(val_f1['embel']),
+        'val_daily_loss' : epoch_daily_loss,
+        'val_gender_loss' : epoch_gender_loss,
+        'val_embel_loss' : epoch_embel_loss,
+        }
     
-    # config setting
-    config = BaseConfig(
-        base_path=args.base_path,
-        seed=args.seed,
-        model=args.model,
-        epochs=args.epochs,
-        num_workers=args.num_workers,
-        train_batch_size=args.train_batch_size,
-        val_batch_size=args.val_batch_size,
-        lr=args.lr,
-        resize=args.resize,
-        criterion=args.criterion,
-        optimizer=args.optimizer,
-        scheduler=args.scheduler,
-        per_iter=args.per_iter,
-        save_path=args.save_path,
-        model_save_type=args.model_save_type,
-        val_metric=args.val_metric
-    )
-    config.save_to_json()
-    config.print_config()
-
-    if (args.wandb):
-        #project name & run name setting
-        run_name = f'{config.MODEL}_{config.TIME}'
-        wandb.init(project=args.project_name, name=run_name)
-
-        #wandb config save
-        wandb_config = {key: value for key, value in config.__dict__.items() if not key.startswith('_')}
-        wandb.config.update(wandb_config)
-
-    train_transform = CustomAug()
-    val_transform = BaseAug()
-
-    train_dataset = ETRI_Dataset(config=config, train_mode=True, transform=train_transform, types='train')
-    val_dataset = ETRI_Dataset(config=config, train_mode=True, transform=val_transform, types='val')
-
-    train_loader = DataLoader(train_dataset, batch_size=config.TRAIN_BATCH_SIZE, num_workers=config.NUM_WORKERS)
-    val_loader = DataLoader(val_dataset, batch_size=config.VAL_BATCH_SIZE, num_workers=config.NUM_WORKERS)
-
-    model = ETRI_model(config).to(config.DEVICE)
-
-    criterion = create_criterion(config.CRITERION).to(config.DEVICE)
-    optimizer = create_optimizer(
-                config.OPTIMIZER,
-                params = model.parameters(),
-                lr = config.LR
-                )
-    scheduler= getattr(import_module("torch.optim.lr_scheduler"), config.SCHEDULER)
-    scheduler = scheduler(
-        optimizer,
-        step_size=config.SCHEDULER_STEP_SIZE, 
-        gamma=config.SCHEDULER_GAMMA,
-    )
+    print('++++++ VAL METRICS ++++++')
+    pprint(metrics)
+    val_acc_mean = (metrics['val_daily_acc'] + metrics['val_gender_acc'] + metrics['val_embel_acc']) / 3
+    val_f1_mean =  (metrics['val_daily_f1'] + metrics['val_gender_f1'] + metrics['val_embel_f1']) / 3
     
-    train_run(model, train_loader, val_loader, criterion, optimizer, scheduler, config, args)
-    if args.wandb:
-        wandb.finish()
+    print(f'Val F1 mean : {val_f1_mean}')
+    print(f'Val ACC mean : {val_acc_mean}')
 
-if __name__ == '__main__':
-    main()
+    # save val metric setting
+    if (config.VAL_METRIC == 'f1'):
+        val_metric = val_f1_mean
+    elif (config.VAL_METRIC == 'acc'):
+        val_metric = val_acc_mean
+
+    #append acc, f1 score
+    metrics['val_metric_f1'] = val_f1_mean
+    metrics['val_metric_acc'] = val_acc_mean
+
+    print("+"*100)
+    #save model by val metrics
+    save_path = os.path.join(config.SAVE_PATH, 'model', config.MODEL, config.TIME)
+    os.makedirs(save_path, exist_ok=True)
+    model_save(config, save_path, model, epoch, val_metric)
+
+    #best logging
+    if (val_metric  > best_log['best_val_metric']):
+        best_log['best_val_metric'] = val_metric
+        best_log['best_epoch'] = epoch
+
+    #save print
+    print(f'Save Model {val_metric:.4f} in : {save_path}')
+
+    return (metrics, best_log)

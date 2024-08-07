@@ -26,6 +26,11 @@ def parser_arguments():
     parser.add_argument("--wandb", action='store_true', help='wandb use flag')
     parser.add_argument("--project_name", type=str, default='ETRI_sub-task_1', help='wandb project name')
 
+    #sampler
+    parser.add_argument("--train_sampler", action='store_true', help='train_sampler')
+    parser.add_argument("--val_sampler", action='store_true', help='val_sampler')
+    parser.add_argument("--sampler_type", type=str, default='p', help='sampler_type [m, p]')
+
     args = parser.parse_args()
     return args
 

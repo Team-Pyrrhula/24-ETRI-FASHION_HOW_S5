@@ -1,10 +1,9 @@
 import pandas as pd
 from sklearn.utils import resample
 
-def val_sampler(df:pd.DataFrame, sampling_columns:list=['Daily', 'Gender', 'Embellishment'], types:str='m'):
+def etri_sampler(df:pd.DataFrame, sampling_columns:list=['Daily', 'Gender', 'Embellishment'], types:str='m'):
     """_summary_
-        Validation Set의 경우 샘플링할 columns의 label 마다 
-        under sampling으로 class별 validation set 구성
+        dataset의 라벨별로 샘플링하여 set을 구성 (under sampling)
     Args:
         df (pd.DataFrame): train dataset 원본
         sampling_columns (list): under sampling 할 columns
@@ -13,7 +12,7 @@ def val_sampler(df:pd.DataFrame, sampling_columns:list=['Daily', 'Gender', 'Embe
             - p (percentage) : 전체 class에서 차지 하는 비율에 따라서 
                             under sampling( * [100% - 차지하는 비율])을 적용
     Retruns:
-        (val_daily, val_gender, val_embel) : 각 columns 마다 sampling 되어진 Dataframe 
+        (daily, gender, embel) : 각 columns 마다 sampling 되어진 Dataframe 
     """
 
     for col in sampling_columns:
@@ -42,16 +41,10 @@ def val_sampler(df:pd.DataFrame, sampling_columns:list=['Daily', 'Gender', 'Embe
                 data_frame = pd.concat([data_frame, under_sampling])
 
         if col == 'Daily':
-            val_daily = data_frame
+            daily = data_frame
         elif col == 'Gender':
-            val_gender = data_frame
+            gender = data_frame
         elif col == 'Embellishment':
-            val_embel = data_frame
+            embel = data_frame
             
-    return (val_daily, val_gender, val_embel)
-
-
-
-
-
-    
+    return (daily, gender, embel)
