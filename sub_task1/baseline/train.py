@@ -240,7 +240,7 @@ def sampler_val_run(model,
                 if key == 'daily':
                     out, _, _ = model(imgs)
                 elif key == 'gneder':
-                    _, out, = model(imgs)
+                    _, out, _ = model(imgs)
                 else:
                     _, _, out = model(imgs)
 
