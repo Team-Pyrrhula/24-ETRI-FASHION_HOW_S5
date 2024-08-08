@@ -11,7 +11,7 @@ from transform import BaseAug, CustomAug
 from dataset import ETRI_Dataset, Sampler_Dataset
 from model import ETRI_model
 from torch.utils.data import DataLoader
-from train import train_run
+from train import train_run, sampler_train_run
 
 import wandb
 import pandas as pd
@@ -65,7 +65,7 @@ def main():
     if config.TRAIN_SAMPLER:
         train_df = pd.read_csv(config.TRAIN_DF)
         daily_df, gender_df, embel_df = etri_sampler(df=train_df, types=config.SAMPLER_TYPE)
-        train_datasetdict = {
+        train_dataset_dict = {
             'daily' : Sampler_Dataset(daily_df, label_type='Daily', config=config, train_mode=True, transform=train_transform, types='train'),
             'gender' : Sampler_Dataset(gender_df, label_type='Gender', config=config, train_mode=True, transform=train_transform, types='train'),
             'embel' : Sampler_Dataset(embel_df, label_type='Embellishment', config=config, train_mode=True, transform=train_transform, types='train'),
@@ -111,7 +111,12 @@ def main():
         gamma=config.SCHEDULER_GAMMA,
     )
     
-    logs = train_run(model, train_dataloader_dict['all'], val_dataloader_dict, criterion, optimizer, scheduler, config, args, wandb)
+    #sampler train 
+    if config.TRAIN_SAMPLER:
+        logs = sampler_train_run(model, train_dataloader_dict, val_dataloader_dict, criterion, optimizer, scheduler, config, args, wandb)
+    else:
+        logs = train_run(model, train_dataloader_dict['all'], val_dataloader_dict, criterion, optimizer, scheduler, config, args, wandb)
+
     best_epoch, best_metrics = logs['best_epoch'], logs['best_val_metric']
     print(f'BEST SCORE -> {best_epoch} : {best_metrics}')
     if args.wandb:

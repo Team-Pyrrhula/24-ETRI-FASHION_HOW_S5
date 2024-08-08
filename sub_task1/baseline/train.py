@@ -97,6 +97,85 @@ def train_run(
 
     return (best_log)
 
+def sampler_train_run(
+        model,
+        train_dataloader_dict,
+        val_dataloader_dict,
+        criterion,
+        optimizer,
+        scheduler,
+        config,
+        args,
+        wandb):
+    
+    epochs = config.EPOCHS
+    best_log = {
+        'best_val_metric' : 0,
+        'best_epoch' : 0,
+    }
+    print("+++ SAMPLER TRAIN START +++")
+    for epoch in range(epochs):
+        model.train()
+        
+        losses = {
+            'total': 0.0,
+            'daily': 0.0,
+            'gender': 0.0,
+            'embel': 0.0,
+        }
+        lens = 0
+        for key, train_loader in train_dataloader_dict.items():
+            lens += len(train_loader)
+            print(f'++++ {key}_train ing ... ++++')
+            for imgs, labels in tqdm(train_loader, desc=f'Epoch {epoch + 1}/{epochs}'):
+                imgs, labels = imgs.to(config.DEVICE), labels.to(config.DEVICE)
+
+                optimizer.zero_grad()
+                if key == 'daily':
+                    out, _, _ = model(imgs)
+                elif key == 'gender':
+                    _, out, _ = model(imgs)
+                else:
+                    _, _, out = model(imgs)
+
+                loss = criterion(out, labels)
+                loss.backward()
+                optimizer.step()
+
+                losses['total'] += loss.item()
+                losses[key] += loss.item()
+        
+        epoch_loss = losses['total'] / lens
+        epoch_daily_loss = losses['daily'] / len(train_dataloader_dict['daily'])
+        epoch_gender_loss = losses['gender'] / len(train_dataloader_dict['gender'])
+        epoch_embel_loss = losses['embel'] / len(train_dataloader_dict['embel'])
+
+        print(f'EPOCH[{epoch+1}] MEAN LOSS : {epoch_loss:.4f}')
+        print(f'EPOCH[{epoch+1}] MEAN DAILY LOSS : {epoch_daily_loss:.4f}')
+        print(f'EPOCH[{epoch+1}] MEAN GENDER LOSS : {epoch_gender_loss:.4f}')
+        print(f'EPOCH[{epoch+1}] MEAN EMBEL LOSS : {epoch_embel_loss:.4f}')
+
+        if args.wandb:
+            wandb.log({
+                "Train Mean Loss" : epoch_loss,
+                "Train Mean Daily Loss" : epoch_daily_loss,
+                "Train Mean Gender Loss" : epoch_gender_loss,
+                "Train Mean Embel Loss" : epoch_embel_loss,
+            })
+        scheduler.step()
+
+        ## 1개라면 일반 val
+        if len(val_dataloader_dict) == 1:
+            metrics, best_log = val_run(model, val_dataloader_dict['all'], criterion, config, epoch, best_log)
+        ## 1개보다 많다면 sampler_val
+        else:
+            metrics, best_log = sampler_val_run(model, val_dataloader_dict, criterion, config, epoch, best_log)
+        #val score wnadb_log
+
+        if args.wandb:
+            wandb.log(metrics)
+    return (best_log)
+
 def val_run(model,
             val_loader,
             criterion,
