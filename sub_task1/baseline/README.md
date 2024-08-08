@@ -4,22 +4,22 @@
 - `timm` 라이브러리의 pretrained 모델 pth를 다운받는 스크립트
 - 모델의 용량을 확인하기 위해서 사용
 
-## train.py
+## main.py
 
  - `기본 학습 run`
 ```python
-train.py <parser.py에 있는 args 설정>
+main.py <parser.py에 있는 args 설정>
 ```
 
 - `만약 모델 학습 출력 결과를 저장하고 싶다면`  
 
 `windows`
 ```bash
-New-Item -Path <저장경로 (파일 이름 제외)> -ItemType Directory -Force; python ./train.py <args 설정> | Tee-Object -FilePath <저장할 경로 및 파일이름을 합친 경로>
+New-Item -Path <저장경로 (파일 이름 제외)> -ItemType Directory -Force; python ./main.py <args 설정> | Tee-Object -FilePath <저장할 경로 및 파일이름을 합친 경로>
 ```
 `linux && mac`
 ```bash
-mkdir -p <저장할 경로 (파일 이름 제외)> && python ./train.py <args 설정> | tee <저장할 경로 및 파일이름을 합친 경로>
+mkdir -p <저장할 경로 (파일 이름 제외)> && python ./main.py <args 설정> | tee <저장할 경로 및 파일이름을 합친 경로>
 ```
 
 ## args
@@ -37,6 +37,10 @@ mkdir -p <저장할 경로 (파일 이름 제외)> && python ./train.py <args �
 `--wandb` : wandb 사용 여부  
 `--project_name` : wandb 프로젝트 이름  
 `--model_save_type` : model save type -> script, origin  
+`--save_img` : augmentation 이미지 저장 여부 -> sampler_train에는 적용 x  
+`--train_sampler` : train sampler 사용 여부  
+`--val_sampler` : val sampler 사용 여부  
+`--sampler_types` : sampler 방법 [m, p]  
 
 ## 진행 사항 
  [✔️] `Config`   
@@ -48,4 +52,5 @@ mkdir -p <저장할 경로 (파일 이름 제외)> && python ./train.py <args �
  [✔️] `wandb` 연동 기능  
  [✔️] `Metric`, `Loose`, `Optimizer`, `Scheduler` 설정 기능  
     - optimizer, loose, scheduler의 변수의 경우 이름을 지정해서 (ex - lr=lr) 넘겨줘야함   
- [❌] `Augmentaion` 시각화 기능
+ [✔️] `Augmentaion` 시각화 기능  
+ [✔️] `Sampler` 기능 및 train & val 기능 구현  
