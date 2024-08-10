@@ -35,6 +35,9 @@ class BaseConfig():
                 val_metric:str = 'acc',
                 save_path:str = 'save',
                 model_save_type:str = 'origin',
+                train_sampler:bool = False,
+                val_sampler:bool = False,
+                sampler_type:str='p'
                 ):
         # info
         self.BASE_PATH = base_path
@@ -64,9 +67,15 @@ class BaseConfig():
         self.SCHEDULER_GAMMA = 0.1 
         self.VAL_METRIC = val_metric
 
+        #sampler
+        self.TRAIN_SAMPLER = train_sampler
+        self.VAL_SAMPLER = val_sampler
+        self.SAMPLER_TYPE = sampler_type
+
         #save info
         self.SAVE_PATH = save_path
         self.MODEL_SAVE_TYPE = model_save_type
+
 
         now = datetime.now()
         self.TIME = now.strftime("%Y_%m_%d_%H_%M")
