@@ -1,8 +1,9 @@
 import cv2
 import os
 import pandas as pd
+from torch.utils.data import Dataset
 
-class Sampler_Dataset():
+class Sampler_Dataset(Dataset):
     def __init__(self,
                 df=pd.DataFrame,
                 label_type:str=None,

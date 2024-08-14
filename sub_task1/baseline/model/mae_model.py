@@ -2,7 +2,8 @@ import torch.nn.functional as F
 import torch.nn as nn
 import torch
 import timm
-from einops import rearrange
+
+from utils import save2img
 
 from .mae_encoder import mobile_vit_s, fast_vit_t8
     
@@ -10,6 +11,38 @@ _ENCODER_DICT = {
     'mobilevit_s.cvnets_in1k' :mobile_vit_s,
     'fastvit_t8.apple_in1k': fast_vit_t8,
 }
+
+
+def random_masking(x, mask_ratio):
+    B, C, H, W = x.shape
+
+    patch_size = 16
+    num_patches_h = H // patch_size
+    num_patches_w = W // patch_size
+    num_patches = num_patches_h * num_patches_w
+
+     # 패치를 flatten하여 (B, num_patches, patch_size*patch_size*C) 형태로 변환
+    x = x.unfold(2, patch_size, patch_size).unfold(3, patch_size, patch_size)
+    x = x.contiguous().view(B, C, num_patches_h, num_patches_w, -1)
+    x = x.permute(0, 2, 3, 1, 4).contiguous().view(B, num_patches, -1)
+
+    # 마스킹할 패치 개수
+    num_masked_patches = int(mask_ratio * num_patches)
+
+    # 마스크 생성 (각 패치에 대해 1은 mask, 0은 유지)
+    mask = torch.zeros(B, num_patches, dtype=torch.bool)
+    for i in range(B):
+        masked_indices = torch.randperm(num_patches)[:num_masked_patches]
+        mask[i, masked_indices] = True
+
+    # 마스크 적용
+    x[mask] = 0  # 마스크된 패치는 0으로 설정
+
+    # 원래 이미지 모양으로 재조합
+    x = x.view(B, num_patches_h, num_patches_w, C, patch_size, patch_size)
+    x = x.permute(0, 3, 1, 4, 2, 5).contiguous().view(B, C, H, W)
+
+    return x, mask
 
 class MAE_Decoder(nn.Module):
     def __init__(self, embed_dim, num_heads, hidden_dim, num_layers, img_size):
@@ -87,9 +120,10 @@ class MAE_Model(nn.Module):
         return (output_size)
     
     def forward(self, x):
-        x = self.encoder(x)
-        tgt = x
-        result = self.decoder(tgt, x)
+        x, mask = random_masking(x, self.mask_ratio)
+        z = self.encoder(x)
+        tgt = z
+        result = self.decoder(tgt, z)
         return result
 
         
