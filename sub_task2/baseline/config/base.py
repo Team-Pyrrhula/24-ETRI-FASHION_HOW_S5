@@ -9,17 +9,12 @@ class BaseConfig():
     def __init__(self,
                 info:dict={
                     'path': 'image_name',
-                    'label_1_num': 7,
-                    'label_2_num': 6,
-                    'label_3_num': 3,
-                    'label_1' : 'Daily',
-                    'label_2' : 'Gender',
-                    'label_3' : 'Embellishment'
+                    'label': 'Color',
                 },
                 base_path:str='./',
                 data_path_name:str='../data',
-                train_csv:str='Fashion-How24_sub1_train.csv',
-                val_csv:str='Fashion-How24_sub1_val.csv',
+                train_csv:str='Fashion-How24_sub2_train.csv',
+                val_csv:str='Fashion-How24_sub2_val.csv',
                 seed:int=42,
                 model:str='mobilenetv4_conv_small.e2400_r224_in1k',
                 epochs:int=50,
@@ -35,9 +30,6 @@ class BaseConfig():
                 val_metric:str = 'acc',
                 save_path:str = 'save',
                 model_save_type:str = 'origin',
-                train_sampler:bool = False,
-                val_sampler:bool = False,
-                sampler_type:str='p'
                 ):
         # info
         self.BASE_PATH = base_path
@@ -63,19 +55,13 @@ class BaseConfig():
         self.OPTIMIZER = optimizer
         self.CRITERION = criterion
         self.SCHEDULER = scheduler
-        self.SCHEDULER_STEP_SIZE = 5
+        self.SCHEDULER_STEP_SIZE = 10
         self.SCHEDULER_GAMMA = 0.1 
         self.VAL_METRIC = val_metric
-
-        #sampler
-        self.TRAIN_SAMPLER = train_sampler
-        self.VAL_SAMPLER = val_sampler
-        self.SAMPLER_TYPE = sampler_type
 
         #save info
         self.SAVE_PATH = save_path
         self.MODEL_SAVE_TYPE = model_save_type
-
 
         now = datetime.now()
         self.TIME = now.strftime("%Y_%m_%d_%H_%M")
@@ -108,12 +94,7 @@ class Inference_BaseConfig():
     def __init__(self,
             info:dict={
                 'path': 'image_name',
-                'label_1_num': 7,
-                'label_2_num': 6,
-                'label_3_num': 3,
-                'label_1' : 'Daily',
-                'label_2' : 'Gender',
-                'label_3' : 'Embellishment'
+                'label': 'Color',
             },
             base_path:str='./',
             data_path_name:str='../data',
@@ -127,7 +108,7 @@ class Inference_BaseConfig():
         self.BASE_PATH = base_path
         self.DATA_PATH = os.path.join(base_path, data_path_name)
 
-        self.TEST_DF = '/aif/Dataset/Fashion-How24_sub1_test.csv'
+        self.TEST_DF = '/aif/Dataset/Fashion-How24_sub2_test.csv'
         
         self.DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.MODEL = model

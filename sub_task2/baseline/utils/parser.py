@@ -12,7 +12,7 @@ def parser_arguments():
     parser.add_argument("--num_workers", type=int, default=2, help="num worker num")
     parser.add_argument("--train_batch_size", type=int, default=16, help="train batch size")
     parser.add_argument("--val_batch_size", type=int, default=128, help="val batch size")
-    parser.add_argument("--lr", type=float, default=0.0001, help="learning rate")
+    parser.add_argument("--lr", type=float, default=0.001, help="learning rate")
     parser.add_argument("--resize", type=int, default=224, help="img resize size")
     parser.add_argument("--criterion", type=str, default="CrossEntropyLoss", help="train criterion")
     parser.add_argument("--optimizer", type=str, default="Adam", help="train optimzier")
@@ -24,12 +24,7 @@ def parser_arguments():
     parser.add_argument("--save_img", action='store_true', help='save_aug_img')
     # wandb
     parser.add_argument("--wandb", action='store_true', help='wandb use flag')
-    parser.add_argument("--project_name", type=str, default='ETRI_sub-task_1', help='wandb project name')
-
-    #sampler
-    parser.add_argument("--train_sampler", action='store_true', help='train_sampler')
-    parser.add_argument("--val_sampler", action='store_true', help='val_sampler')
-    parser.add_argument("--sampler_type", type=str, default='p', help='sampler_type [m, p]')
+    parser.add_argument("--project_name", type=str, default='ETRI_sub-task_2', help='wandb project name')
 
     args = parser.parse_args()
     return args

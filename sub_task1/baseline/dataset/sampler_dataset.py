@@ -2,28 +2,25 @@ import cv2
 import os
 import pandas as pd
 
-class ETRI_Dataset():
+class Sampler_Dataset():
     def __init__(self,
+                df=pd.DataFrame,
+                label_type:str=None,
                 config=None,
                 train_mode:bool=True,
                 transform=None,
                 types:str='train',
                 ):
         
+        self.df = df
+        self.label_type = label_type
         if types == 'train':
-            self.df = pd.read_csv(config.TRAIN_DF)
             self.image_path = 'train'
         elif types == 'val':
-            self.df = pd.read_csv(config.VAL_DF)
             self.image_path = 'val'
-        elif types == 'test':
-            self.df = pd.read_csv(config.TEST_DF)
-            self.image_path = '/aif/Dataset/test'
 
         if train_mode:
-            self.label_1 = self.df[config.INFO['label_1']].values
-            self.label_2 = self.df[config.INFO['label_2']].values
-            self.label_3 = self.df[config.INFO['label_3']].values
+            self.label = self.df[label_type].values
         self.images = self.df[config.INFO['path']].values
 
         self.config = config
@@ -33,6 +30,9 @@ class ETRI_Dataset():
 
     def __len__(self):
         return (len(self.df))
+    
+    def __p_label__(self):
+        print(self.label_type)
     
     def __getitem__(self, idx):
         if self.train_mode == 'test':
@@ -45,9 +45,7 @@ class ETRI_Dataset():
             image = self.transform(image)
 
         if self.train_mode:
-            label_1 = self.label_1[idx]
-            label_2 = self.label_2[idx]
-            label_3 = self.label_3[idx]
-            return (image, label_1, label_2, label_3)
+            label = self.label[idx]
+            return (image, label)
         
         return (image)

@@ -168,3 +168,6 @@ sub_task1/baseline/save/*
 
 # Model
 sub_task3/model/*
+
+# Pyenv
+**/.python-version

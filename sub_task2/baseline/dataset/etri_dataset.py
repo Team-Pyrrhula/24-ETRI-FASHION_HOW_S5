@@ -2,7 +2,7 @@ import cv2
 import os
 import pandas as pd
 
-class ETRI_Dataset():
+class ETRI_Dataset_color():
     def __init__(self,
                 config=None,
                 train_mode:bool=True,
@@ -21,9 +21,7 @@ class ETRI_Dataset():
             self.image_path = '/aif/Dataset/test'
 
         if train_mode:
-            self.label_1 = self.df[config.INFO['label_1']].values
-            self.label_2 = self.df[config.INFO['label_2']].values
-            self.label_3 = self.df[config.INFO['label_3']].values
+            self.label = self.df[config.INFO['label']].values
         self.images = self.df[config.INFO['path']].values
 
         self.config = config
@@ -45,9 +43,7 @@ class ETRI_Dataset():
             image = self.transform(image)
 
         if self.train_mode:
-            label_1 = self.label_1[idx]
-            label_2 = self.label_2[idx]
-            label_3 = self.label_3[idx]
-            return (image, label_1, label_2, label_3)
+            label = self.label[idx]
+            return (image, label)
         
         return (image)
