@@ -34,7 +34,7 @@ import argparse
 import os
 
 # custom modules
-from baseline.gaia import *
+from gaia import *
 from exp_utils import set_seed
 
 # global settings
@@ -99,7 +99,7 @@ parser.add_argument('--seed', type=int,
                     help='실험 재현을 위한 시드 값을 입력합니다.')
 parser.add_argument('--mode', type=str,
                     default='test',
-                    help='실행할 모드를 선택합니다. train/test/pred 세 가지 모드가 존재합니다.')
+                    help='실행할 모드를 선택합니다. train/eval/test/pred의 네 가지 모드가 존재합니다.')
 parser.add_argument('--task_ids', type=str,
                     default='/1/1',
                     help='현재 평가 중인 모델을 학습할 때, 마지막으로 사용한 데이터의 task id를 입력합니다.')
@@ -115,22 +115,22 @@ parser.add_argument('--use_cl', type=str2bool,
 
 # path options
 parser.add_argument('--in_file_trn_dialog', type=str, 
-                    default='../data/task1.ddata.wst.txt', 
+                    default='../aif/data/task1.ddata.wst.txt', 
                     help='학습 대화문 데이터의 경로를 입력합니다.')
 parser.add_argument('--in_file_tst_dialog', type=str, 
-                    default='../data/cl_eval_task1.wst.dev', 
+                    default='../aif/data/cl_eval_task1.wst.dev', 
                     help='테스트 대화문 데이터의 경로를 입력합니다.')
 parser.add_argument('--in_file_fashion', type=str, 
-                    default='../data/mdata.wst.txt.2023.08.23', 
+                    default='../aif/data/mdata.wst.txt.2023.08.23', 
                     help='패션 아이템 메타데이터의 경로를 입력합니다.')
 parser.add_argument('--in_file_img_feats', type=str, # TODO: json 파일 존재 여부를 대회 운영 측에 문의하기
-                    default='../data/extracted_feat.json', 
+                    default='../aif/data/extracted_feat.json', 
                     help='패션 아이템 이미지의 경로를 입력합니다.')
 parser.add_argument('--model_path', type=str, 
                     default='./model', 
                     help='모델을 저장하거나 불러올 경로를 입력합니다.')
 parser.add_argument('--subWordEmb_path', type=str, 
-                    default='../sstm_v0p5_deploy/sstm_v4p49_np_n36134_d128.dat', 
+                    default='../aif/sstm_v0p5_deploy/sstm_v4p49_np_n36134_d128.dat', 
                     help='subword embedding의 경로를 입력합니다.')
 
 # data options
@@ -193,7 +193,6 @@ args, _ = parser.parse_known_args()
 ### input options ###
 
 
-# TODO: wandb 추가 or 실험 기록을 위한 모듈 작성
 if __name__ == '__main__':
     
     print('\n')
@@ -202,23 +201,32 @@ if __name__ == '__main__':
     print('-'*60)
     print('\n')
 
+    # 실험 유효성 검증
     mode = args.mode    
-    if mode not in ['train', 'test', 'pred'] :
+    if mode not in ['train', 'eval', 'test', 'pred'] :
         raise ValueError('Unknown mode {}'.format(mode))
 
+    # 시드 세팅
+    set_seed(args.seed)
+
+    # 실험 인자 확인
     print('<Parsed arguments>')
     for k, v in vars(args).items():
         print('{}: {}'.format(k, v))
     print('')
     
+    # 실험 객체 선언 && 실험 시작
     gaia = gAIa(args, get_udevice())
+
+    # training
     if mode == 'train':
-        # training
         gaia.train()
-    elif mode == 'test':
-        # test
+    
+    # test
+    elif mode in ['eval', 'test']:
         gaia.test()
+
+    # pred
     elif mode == 'pred':
-        # pred
         gaia.pred()
 

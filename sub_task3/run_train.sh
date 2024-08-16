@@ -17,8 +17,8 @@ CUDA_VISIBLE_DEVICES="0" python3 ./main.py --exp_name baseline \
                                      --key_size 300 \
                                      --hops 3 \
                                      --eval_node [6000,6000,200][2000] \
-                                     --epochs 20 \
-                                     --save_freq 5 \
+                                     --epochs 80 \
+                                     --save_freq 160 \
                                      --batch_size 100 \
                                      --learning_rate 0.005 \
                                      --max_grad_norm 20.0 \
