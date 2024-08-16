@@ -161,5 +161,13 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
+# Data
+aif/
+sub_task1/data/*
+sub_task1/baseline/save/*
+
+# Model
+sub_task3/model/*
+
 # Pyenv
 **/.python-version
