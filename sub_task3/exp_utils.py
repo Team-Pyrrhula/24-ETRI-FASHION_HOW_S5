@@ -27,7 +27,7 @@ def set_seed(seed: int=2024) -> None:
 
 # TODO: 서버 제출 시 본 함수가 동작하지 않도록 예외 처리할 것
 def save_results(exp_name: str, score: float, tr_task_id: str, tt_task_id: str,
-                 mode: str = 'eval', save_path: str = './results') -> None:
+                 mode: str = 'eval', save_dir: str = 'results') -> None:
     """실험 결과를 csv 파일에 누적합니다.
 
     exp_name    | task1 | task2 | task3 | task4 | task5 | task6
@@ -41,10 +41,15 @@ def save_results(exp_name: str, score: float, tr_task_id: str, tt_task_id: str,
         tr_task_id (str): 평가에 사용한 모델이 마지막으로 학습한 데이터의 번호입니다.
         tt_task_id (str): 현재 평가에 사용하고 있는 데이터의 번호입니다.
         mode (str, optional): 평가 종류입니다. eval 또는 test를 사용합니다. Defaults to 'eval'.
-        save_path (str, optional): csv 파일을 저장할 디렉토리의 경로입니다. Defaults to './results'.
+        save_dir (str, optional): csv 파일을 저장할 디렉토리의 이름입니다. Defaults to 'results'.
     """
+    # 현재 경로를 기준으로 디렉토리를 생성
+    dir_path = os.path.join(os.getcwd(), save_dir)
+    if not os.path.isdir(dir_path):
+        os.mkdir(dir_path)
+
     # 필요한 변수 생성
-    file_path = os.path.join(save_path, mode + '.csv')
+    file_path = os.path.join(dir_path, mode + '.csv')
     if mode == 'eval':
         exp_name = f'{exp_name}@task{tr_task_id}' # 01_baseline@task1, ...
 
