@@ -2,24 +2,38 @@ import logging
 # 모든 로깅 출력을 비활성화
 logging.disable(logging.CRITICAL)
 
-from utils import parser_arguments, seed_everything, etri_sampler
+from utils import parser_arguments, seed_everything, etri_sampler, extract_final_conv
 from loose import create_criterion
 from optimizer import create_optimizer
 
-from config import BaseConfig
+from config import BaseConfig, MAEConfig
 from transform import BaseAug, CustomAug
 from dataset import ETRI_Dataset, Sampler_Dataset
-from model import ETRI_model
+from model import ETRI_model, ETRI_MAE_model, MAE_Model
 from torch.utils.data import DataLoader
 from train import train_run, sampler_train_run
 
 import wandb
 import pandas as pd
+import torch
+import timm
 from importlib import import_module
 
 def main():
     args = parser_arguments()
+
+    # classifier deeper
+    if args.mae_head == 'deep':
+        deep_head = True
+    else:
+        deep_head = False
     
+    if args.mae_finetune:
+        mae_config = MAEConfig(
+            fine_tune=True,
+            encoder=args.model,
+            deep_head=deep_head,
+        )
     # config setting
     config = BaseConfig(
         base_path=args.base_path,
@@ -41,6 +55,7 @@ def main():
         train_sampler=args.train_sampler,
         val_sampler=args.val_sampler,
         sampler_type=args.sampler_type,
+        deep_head=deep_head
     )
     config.save_to_json()
     config.print_config()
@@ -96,7 +111,21 @@ def main():
     for key, dataset in val_dataset_dict.items():
         val_dataloader_dict[key] = DataLoader(dataset, batch_size=config.VAL_BATCH_SIZE, num_workers=config.NUM_WORKERS)
 
-    model = ETRI_model(config).to(config.DEVICE)
+    if args.mae_finetune:
+        mae_model = MAE_Model(mae_config).to(config.DEVICE)
+
+        #load pretrained 
+        mae_model.load_state_dict(torch.load(args.mae_pretrined_model_path, map_location=config.DEVICE))
+        encoder = mae_model.encoder
+        final_conv =  extract_final_conv(config).to(config.DEVICE)
+
+        #remove not need
+        del mae_model
+        
+        model = ETRI_MAE_model(config, encoder, final_conv, freeze=args.mae_freeze).to(config.DEVICE)
+
+    else:
+        model = ETRI_model(config).to(config.DEVICE)
 
     criterion = create_criterion(config.CRITERION).to(config.DEVICE)
     optimizer = create_optimizer(

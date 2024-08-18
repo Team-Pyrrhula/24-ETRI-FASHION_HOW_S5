@@ -5,7 +5,7 @@ def parser_arguments():
     parser 설정
     """
     parser = argparse.ArgumentParser(description="train & val parser")
-    parser.add_argument("--model", type=str, default="mobilenetv4_conv_small.e2400_r224_in1k", help="MODEL_NAME !!")
+    parser.add_argument("--model", type=str, default="fastvit_t8.apple_in1k", help="MODEL_NAME !!")
     parser.add_argument("--base_path", type=str, default="./", help="project base path")
     parser.add_argument("--seed", type=int, default=42, help="seed num")
     parser.add_argument("--epochs", type=int, default=50, help="epochs")
@@ -31,6 +31,11 @@ def parser_arguments():
     parser.add_argument("--val_sampler", action='store_true', help='val_sampler')
     parser.add_argument("--sampler_type", type=str, default='p', help='sampler_type [m, p]')
 
+    #mae fine tune
+    parser.add_argument("--mae_finetune", action='store_true', help='mae_finetune flag')
+    parser.add_argument("--mae_pretrined_model_path", type=str, default="./save/mae/fastvit_t8.apple_in1k/49_0.2315.pt")
+    parser.add_argument("--mae_head", type=str, default="deep", help='mae classifier deeper')
+    parser.add_argument("--mae_freeze", type=int, default=1, help='mae feature map freeze -> [1, 0]')
     args = parser.parse_args()
     return args
 

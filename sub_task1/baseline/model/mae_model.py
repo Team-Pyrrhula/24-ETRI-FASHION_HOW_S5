@@ -8,7 +8,7 @@ from utils import save2img
 from .mae_encoder import mobile_vit_s, fast_vit_t8
     
 _ENCODER_DICT = {
-    'mobilevit_s.cvnets_in1k' :mobile_vit_s,
+    'mobilevit_s.cvnets_in1k' : mobile_vit_s,
     'fastvit_t8.apple_in1k': fast_vit_t8,
 }
 
