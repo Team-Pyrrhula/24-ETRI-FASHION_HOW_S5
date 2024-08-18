@@ -171,3 +171,6 @@ sub_task3/model/*
 
 # Pyenv
 **/.python-version
+
+# Save
+save/

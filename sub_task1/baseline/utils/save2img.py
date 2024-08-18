@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 import os
 
-def save2img(imgs:torch.tensor, epoch:int, sampling:float=0.3, save_path:str='save'):
+def save2img(imgs:torch.tensor, epoch:int, sampling:float=0.3, save_path:str='save', plus:str=None):
     
     batch_size = imgs.size(0)
     indexing = list(range(0, batch_size))
@@ -17,5 +17,8 @@ def save2img(imgs:torch.tensor, epoch:int, sampling:float=0.3, save_path:str='sa
         img_np = imgs[idx].numpy().transpose(1, 2, 0).copy() 
         img_np = (img_np * 255).astype(np.uint8)
 
-        cv2.imwrite(os.path.join(save_path, f"augmented_{epoch}_{idx}.png"), img_np)
+        if plus is not None:
+            cv2.imwrite(os.path.join(save_path, f"augmented_{epoch}_{idx}_{plus}.png"), img_np)
+        else:
+            cv2.imwrite(os.path.join(save_path, f"augmented_{epoch}_{idx}.png"), img_np)
 

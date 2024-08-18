@@ -37,7 +37,8 @@ class BaseConfig():
                 model_save_type:str = 'origin',
                 train_sampler:bool = False,
                 val_sampler:bool = False,
-                sampler_type:str='p'
+                sampler_type:str='p',
+                deep_head:bool=True
                 ):
         # info
         self.BASE_PATH = base_path
@@ -66,6 +67,9 @@ class BaseConfig():
         self.SCHEDULER_STEP_SIZE = 5
         self.SCHEDULER_GAMMA = 0.1 
         self.VAL_METRIC = val_metric
+
+        #mae 
+        self.DEEP_HEAD = deep_head
 
         #sampler
         self.TRAIN_SAMPLER = train_sampler
@@ -121,6 +125,7 @@ class Inference_BaseConfig():
             model_path:str='./save/models',
             save_path:str='./save',
             resize:int=224,
+            deep_head:bool=True
             ):
         
         self.INFO = info
@@ -134,6 +139,8 @@ class Inference_BaseConfig():
         self.MODEL_PATH = model_path
         self.SAVE_PATH = save_path
         self.RESIZE = resize
+
+        self.DEEP_HEAD = deep_head
 
         now = datetime.now()
         self.TIME = now.strftime("%Y_%m_%d_%H_%M")

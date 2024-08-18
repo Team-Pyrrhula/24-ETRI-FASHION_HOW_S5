@@ -1,8 +1,9 @@
 import cv2
 import os
 import pandas as pd
+from torch.utils.data import Dataset
 
-class ETRI_Dataset():
+class ETRI_Dataset(Dataset):
     def __init__(self,
                 config=None,
                 train_mode:bool=True,
