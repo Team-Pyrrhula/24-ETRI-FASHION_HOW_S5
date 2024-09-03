@@ -119,8 +119,8 @@ def train_run(
             cm = confusion_matrix(val_true, val_pred)
             acsa = []
             for i in range(cm.shape[0]):    
-                if i == 18:
-                    pass
+                if i >= 18:
+                    continue
                 # 각 클래스의 TP와 전체 샘플 수를 사용하여 정확도 계산
                 accuracy = cm[i, i] / np.sum(cm[i, :])
                 classes = label_decoder[i]
