@@ -40,7 +40,7 @@ import shutil
 import time
 import timeit
 import re
-from tqdm import tqdm
+# from tqdm import tqdm
 import argparse
 
 # external library
@@ -242,17 +242,19 @@ class gAIa(object):
                 self._model.load_state_dict(checkpoint['model'])
                 print('[*] load success: {}\n'.format(file_name))
 
-                # 학습이 완전히 종료된 weight 파일을 불러왔다면, backup을 생성
-                if self._model_file == 'gAIa-final.pt':
-                    print(f'time.strftime: {time.strftime("%m%d-%H%M%S")}')
-                    file_name_backup = os.path.join(self._model_path, 
-                        'gAIa-final-{}.pt'.format(time.strftime("%m%d-%H%M%S")))
-                    print(f'file_name_backup: {file_name_backup}')
-                    shutil.copy(file_name, file_name_backup)
+                ################## deprecated ##################
+                # # 학습이 완전히 종료된 weight 파일을 불러왔다면, backup을 생성
+                # if self._model_file == 'gAIa-final.pt':
+                #     print(f'time.strftime: {time.strftime("%m%d-%H%M%S")}')
+                #     file_name_backup = os.path.join(self._model_path, 
+                #         'gAIa-final-{}.pt'.format(time.strftime("%m%d-%H%M%S")))
+                #     print(f'file_name_backup: {file_name_backup}')
+                #     shutil.copy(file_name, file_name_backup)
 
-                # 학습 중이었던 weight 파일이라면, 학습이 종료된 에폭부터 재학습
-                else:
-                    init_epoch += int(re.findall('\d+', file_name)[-1])
+                # # 학습 중이었던 weight 파일이라면, 학습이 종료된 에폭부터 재학습
+                # else:
+                #     init_epoch += int(re.findall('\d+', file_name)[-1])
+                ################## deprecated ##################
 
             # weight file이 존재하지 않는다면, 프로세스를 종료
             else:
@@ -512,3 +514,13 @@ class gAIa(object):
                      tr_task_id=tr_task_id, tt_task_id=eval_task_id,
                      mode=self._mode)
 
+
+# Test Code
+if __name__ == "__main__":
+    model = Model(emb_size=128, key_size=300, mem_size=16,
+                  meta_size=4, hops=3, item_size=1,
+                  coordi_size=4, eval_node='[6000,6000,200][2000,1000,500]',
+                  num_rnk=3, use_batch_norm=False, use_dropout=True,
+                  zero_prob=0.5, use_multimodal=False, img_feat_size=4096)
+    
+    print(f"number of model parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad)}")
