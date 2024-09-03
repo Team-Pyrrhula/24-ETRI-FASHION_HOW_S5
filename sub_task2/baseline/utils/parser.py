@@ -6,6 +6,7 @@ def parser_arguments():
     """
     parser = argparse.ArgumentParser(description="train & val parser")
     parser.add_argument("--model", type=str, default="mobilenetv4_conv_small.e2400_r224_in1k", help="MODEL_NAME !!")
+    parser.add_argument("--pretrain", type=int, default=0, help='use pretrained model')
     parser.add_argument("--base_path", type=str, default="./", help="project base path")
     parser.add_argument("--seed", type=int, default=42, help="seed num")
     parser.add_argument("--epochs", type=int, default=50, help="epochs")
@@ -22,10 +23,32 @@ def parser_arguments():
     parser.add_argument("--model_save_type", type=str, default='origin', help="torch model save method [script, origin]")
     parser.add_argument("--val_metric", type=str, default='f1', help='val metric')
     parser.add_argument("--save_img", action='store_true', help='save_aug_img')
+    
+    #tain val df path
+    parser.add_argument("--train_df", type=str, default="Fashion-How24_sub2_train.csv")
+    parser.add_argument("--val_df", type=str, default="Fashion-How24_sub2_val.csv")
+
     # wandb
     parser.add_argument("--wandb", action='store_true', help='wandb use flag')
     parser.add_argument("--project_name", type=str, default='ETRI_sub-task_2', help='wandb project name')
+    
+    #remgb
+    parser.add_argument("--remgb", type=int, default=0, help="use remgb dataset")
 
+    # crop
+    parser.add_argument("--crop", type=int, default=0, help="use crop image")
+
+    # sampling
+    parser.add_argument("--sampler", type=int, default=0, help="use smapler")
+
+    # img_type
+    parser.add_argument("--img_type", type=str, default='RGB', help='using img open tpye : [RGB, LAB, HSV]')
+
+    # custom aug
+    parser.add_argument("--custom_aug", action='store_true', help='custom augmentation use')
+    
+    # dataset mean std 
+    parser.add_argument("--mean_std", action='store_true', help='dataset mean std calcul')
     args = parser.parse_args()
     return args
 

@@ -13,8 +13,11 @@ class BackgroundRemover(A.ImageOnlyTransform):
         
         # 배경 제거
         pil_img_no_bg = remove(pil_img)
+
+        #rgb로 변경
+        pil_img_no_bg_rgb = pil_img_no_bg.convert("RGB")
         
         # PIL 이미지를 다시 넘파이 배열로 변환
-        img_no_bg = np.array(pil_img_no_bg)
+        img_no_bg = np.array(pil_img_no_bg_rgb)
         
         return img_no_bg

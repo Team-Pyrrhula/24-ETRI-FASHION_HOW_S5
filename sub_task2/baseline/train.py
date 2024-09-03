@@ -2,7 +2,7 @@ import logging
 # 모든 로깅 출력을 비활성화
 logging.disable(logging.CRITICAL)
 
-from utils import parser_arguments, model_save, save2img
+from utils import parser_arguments, model_save, save2img, seed_everything, calculate_mean_std
 from config import BaseConfig
 from transform import BaseAug, CustomAug
 from dataset import ETRI_Dataset_color
@@ -17,7 +17,7 @@ import torch
 import torch.nn.functional as F
 from importlib import import_module
 import numpy as np
-from sklearn.metrics import f1_score, accuracy_score
+from sklearn.metrics import f1_score, accuracy_score, confusion_matrix
 from pprint import pprint
 import os
 import wandb
@@ -33,6 +33,27 @@ def train_run(
         args
         ):
     
+    label_decoder = {
+                    0:'Red',
+                    1:'Coral',
+                    2:'Orange',
+                    3:'Pink',
+                    4:'Purple',
+                    5:'Brown',
+                    6:'Beige',
+                    7:'Ivory',
+                    8:'Yellow',
+                    9:'Mustard',
+                    10:'Skyblue',
+                    11:'Royalblue',
+                    12:'Navy',
+                    13:'Green',
+                    14:'Khaki',
+                    15:'White',
+                    16:'Gray',
+                    17:'Black',
+    }
+
     epochs = config.EPOCHS
     best_val_metric = 0
 
@@ -50,7 +71,7 @@ def train_run(
             if args.save_img:
                 save2img(imgs.cpu(), epoch, save_path=config.SAVE_PATH)
 
-            out = model(imgs)
+            out = model(imgs.float())
             loss = criterion(out, label)
 
             loss.backward()
@@ -77,29 +98,42 @@ def train_run(
         #val
         print(f"+++ [EPOCH : {epoch + 1}] - VAL START +++")
         val_loss = 0
-        val_acc, val_f1 = [], []
-
+        val_true, val_pred = [], []
         model.eval()
         with torch.no_grad():
             for imgs, label in tqdm(val_loader, desc=f'Validation Epoch {epoch + 1}/{epochs}', leave=False):
                 imgs, label = imgs.to(config.DEVICE), label.to(config.DEVICE)
                 
-                outs = model(imgs)
+                outs = model(imgs.float())
                 preds = torch.argmax(F.softmax(outs, dim=1), dim=1)
-                val_acc.append(accuracy_score(label.cpu().numpy(), preds.cpu().numpy()))
-                val_f1.append(f1_score(label.cpu().numpy(), preds.cpu().numpy(), average='macro', zero_division=1))
+
+                val_true.extend(label.cpu().numpy())
+                val_pred.extend(preds.cpu().numpy())
 
                 loss = criterion(outs, label)
                 val_loss += loss.item()
 
             epoch_val_loss = val_loss / len(val_loader)
 
+            #confusion matrix
+            cm = confusion_matrix(val_true, val_pred)
+            acsa = []
+            for i in range(cm.shape[0]):    
+                if i == 18:
+                    pass
+                # 각 클래스의 TP와 전체 샘플 수를 사용하여 정확도 계산
+                accuracy = cm[i, i] / np.sum(cm[i, :])
+                classes = label_decoder[i]
+                acsa.append(accuracy)
+                print(f'Accuracy for Class {classes}: {accuracy:.2f}')
+
             metrics = {
             'val_loss' : epoch_val_loss,
-            'val_acc' : np.mean(val_acc),
-            'val_f1' : np.mean(val_f1),
+            'val_acc' : accuracy_score(val_true, val_pred),
+            'val_f1' : f1_score(val_true, val_pred, average='macro', zero_division=1),
+            'val_ACSA': np.mean(acsa)
             }
-            
+                
             # wandb logging
             if args.wandb:
                 wandb.log(metrics)
@@ -128,8 +162,11 @@ def main():
     # config setting
     config = BaseConfig(
         base_path=args.base_path,
+        train_csv=args.train_df,
+        val_csv=args.val_df,
         seed=args.seed,
         model=args.model,
+        pretrain=bool(args.pretrain),
         epochs=args.epochs,
         num_workers=args.num_workers,
         train_batch_size=args.train_batch_size,
@@ -142,10 +179,13 @@ def main():
         per_iter=args.per_iter,
         save_path=args.save_path,
         model_save_type=args.model_save_type,
-        val_metric=args.val_metric
+        val_metric=args.val_metric,
+        crop=bool(args.crop),
+        remgb=bool(args.remgb),
+        sampler=bool(args.sampler),
+        img_type=args.img_type,
     )
-    config.save_to_json()
-    config.print_config()
+    seed_everything(config.SEED)
 
     if (args.wandb):
         #project name & run name setting
@@ -156,11 +196,41 @@ def main():
         wandb_config = {key: value for key, value in config.__dict__.items() if not key.startswith('_')}
         wandb.config.update(wandb_config)
 
-    train_transform = CustomAug()
-    val_transform = BaseAug()
+    if args.mean_std:
+        train_mean, train_std = calculate_mean_std(config, config.IMG_TYPE)
+        print(f'train mean : {train_mean}\ntrain std : {train_std}')
+    else:
+        #for only RGB -> ImageNet dataset mean, std
+        train_mean, train_std = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
 
-    train_dataset = ETRI_Dataset_color(config=config, train_mode=True, transform=train_transform, types='train')
-    val_dataset = ETRI_Dataset_color(config=config, train_mode=True, transform=val_transform, types='val')
+    config.TRAIN_MEAN = train_mean
+    config.TRAIN_STD = train_std
+
+    if args.custom_aug:
+        train_transform = CustomAug(mean=train_mean, std=train_std)
+        config.CUSTOM_AUG = True
+    else:
+        train_transform = BaseAug(mean=train_mean, std=train_std)
+        config.CUSTOM_AUG = False
+        
+    val_transform = BaseAug(mean=train_mean, std=train_std)
+
+    train_dataset = ETRI_Dataset_color(config=config, train_mode=True, transform=train_transform, types='train', remgb=config.REMGB, crop=config.CROP, sampling=config.SAMPLER)
+    val_dataset = ETRI_Dataset_color(config=config, train_mode=True, transform=val_transform, types='val', remgb=False, crop=False, sampling=False)
+    
+    # class_distributions_dict = dict(sorted(train_dataset.df['Color'].value_counts().to_dict().items()))
+    # class_distributions = list( v for k,v in class_distributions_dict.items())
+    # total_samples = sum(class_distributions)
+    
+    # class_weights = [total_samples / (len(class_distributions) * c) for c in class_distributions]
+    # #if model output size is 19
+    # class_weights.append(0.00000001)
+    # print(class_weights)
+    # config.CLASS_WEIGHT = class_weights
+    # class_weights = torch.FloatTensor(class_weights).to(config.DEVICE)
+    
+    config.save_to_json()
+    config.print_config()
 
     train_loader = DataLoader(train_dataset, batch_size=config.TRAIN_BATCH_SIZE, num_workers=config.NUM_WORKERS)
     val_loader = DataLoader(val_dataset, batch_size=config.VAL_BATCH_SIZE, num_workers=config.NUM_WORKERS)

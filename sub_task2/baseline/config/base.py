@@ -17,6 +17,7 @@ class BaseConfig():
                 val_csv:str='Fashion-How24_sub2_val.csv',
                 seed:int=42,
                 model:str='mobilenetv4_conv_small.e2400_r224_in1k',
+                pretrain:bool=False,
                 epochs:int=50,
                 num_workers:int = 2,
                 train_batch_size:int = 16,
@@ -30,6 +31,10 @@ class BaseConfig():
                 val_metric:str = 'acc',
                 save_path:str = 'save',
                 model_save_type:str = 'origin',
+                crop:bool = False,
+                remgb:bool = False,
+                sampler:bool = False,
+                img_type:str='RGB',
                 ):
         # info
         self.BASE_PATH = base_path
@@ -44,6 +49,7 @@ class BaseConfig():
         self.SEED = seed
         self.DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.MODEL = model
+        self.PRETRAIN = pretrain
         self.EPOCHS = epochs
         self.NUM_WORKERS = num_workers
         self.TRAIN_BATCH_SIZE = train_batch_size
@@ -58,6 +64,10 @@ class BaseConfig():
         self.SCHEDULER_STEP_SIZE = 10
         self.SCHEDULER_GAMMA = 0.1 
         self.VAL_METRIC = val_metric
+        self.CROP = crop
+        self.REMGB = remgb
+        self.SAMPLER = sampler
+        self.IMG_TYPE = img_type
 
         #save info
         self.SAVE_PATH = save_path
@@ -102,6 +112,7 @@ class Inference_BaseConfig():
             model_path:str='./save/models',
             save_path:str='./save',
             resize:int=224,
+            img_type:str='RGB',
             ):
         
         self.INFO = info
@@ -115,6 +126,7 @@ class Inference_BaseConfig():
         self.MODEL_PATH = model_path
         self.SAVE_PATH = save_path
         self.RESIZE = resize
+        self.IMG_TYPE = img_type
 
         now = datetime.now()
         self.TIME = now.strftime("%Y_%m_%d_%H_%M")
