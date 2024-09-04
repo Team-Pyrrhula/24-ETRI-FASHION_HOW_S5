@@ -9,7 +9,7 @@ from dataset import ETRI_Dataset_color
 from model import ETRI_model_color
 from loose import create_criterion
 from optimizer import create_optimizer
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 from tqdm import tqdm
 
 import torch.nn as nn
@@ -215,8 +215,19 @@ def main():
         
     val_transform = BaseAug(mean=train_mean, std=train_std)
 
-    train_dataset = ETRI_Dataset_color(config=config, train_mode=True, transform=train_transform, types='train', remgb=config.REMGB, crop=config.CROP, sampling=config.SAMPLER)
-    val_dataset = ETRI_Dataset_color(config=config, train_mode=True, transform=val_transform, types='val', remgb=False, crop=False, sampling=False)
+    train_dataset = ETRI_Dataset_color(config=config, train_mode=True, transform=train_transform, types='train', remgb=config.REMGB, crop=config.CROP)
+    val_dataset = ETRI_Dataset_color(config=config, train_mode=True, transform=val_transform, types='val', remgb=False, crop=False)
+
+    if args.sampler:
+        class_counts = train_dataset.df['Color'].value_counts().sort_index().values
+        class_weights = 1. / class_counts
+
+        sample_weights = class_weights[train_dataset.df['Color'].values]
+        sampler = WeightedRandomSampler(weights=sample_weights, num_samples=len(sample_weights), replacement=True)
+
+        print(f'Sampler weight : {sample_weights}')
+    else:
+        sampler = None
     
     # class_distributions_dict = dict(sorted(train_dataset.df['Color'].value_counts().to_dict().items()))
     # class_distributions = list( v for k,v in class_distributions_dict.items())
@@ -232,7 +243,7 @@ def main():
     config.save_to_json()
     config.print_config()
 
-    train_loader = DataLoader(train_dataset, batch_size=config.TRAIN_BATCH_SIZE, num_workers=config.NUM_WORKERS)
+    train_loader = DataLoader(train_dataset, batch_size=config.TRAIN_BATCH_SIZE, num_workers=config.NUM_WORKERS, sampler=sampler)
     val_loader = DataLoader(val_dataset, batch_size=config.VAL_BATCH_SIZE, num_workers=config.NUM_WORKERS)
 
     model = ETRI_model_color(config).to(config.DEVICE)

@@ -1,7 +1,6 @@
 import cv2
 import os
 import pandas as pd
-from utils import sampler
 
 class ETRI_Dataset_color():
     def __init__(self,
@@ -11,7 +10,6 @@ class ETRI_Dataset_color():
                 types:str='train',
                 remgb:bool=False,
                 crop:bool=False,
-                sampling:bool=False,
                 ):
         if remgb:
             if types == 'train':
@@ -24,10 +22,6 @@ class ETRI_Dataset_color():
             elif types == 'val':
                 self.df = pd.read_csv(config.VAL_DF)
                 self.image_path = 'val'
-
-        if sampling:
-            self.df = sampler(self.df)
-            print(self.df['Color'].value_counts())
 
         if types == 'test':
             self.df = pd.read_csv(config.TEST_DF)
