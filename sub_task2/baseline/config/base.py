@@ -113,6 +113,7 @@ class Inference_BaseConfig():
             save_path:str='./save',
             resize:int=224,
             img_type:str='RGB',
+            pretrain:bool=False,
             ):
         
         self.INFO = info
@@ -127,6 +128,7 @@ class Inference_BaseConfig():
         self.SAVE_PATH = save_path
         self.RESIZE = resize
         self.IMG_TYPE = img_type
+        self.PRETRAIN = pretrain
 
         now = datetime.now()
         self.TIME = now.strftime("%Y_%m_%d_%H_%M")

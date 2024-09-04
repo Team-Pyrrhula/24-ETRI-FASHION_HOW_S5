@@ -4,7 +4,7 @@ logging.disable(logging.CRITICAL)
 
 from utils import parser_arguments, model_save, save2img, seed_everything, calculate_mean_std
 from config import BaseConfig
-from transform import BaseAug, CustomAug
+from transform import BaseAug, CustomAug, NewCustomAug
 from dataset import ETRI_Dataset_color
 from model import ETRI_model_color
 from loose import create_criterion
@@ -207,7 +207,7 @@ def main():
     config.TRAIN_STD = train_std
 
     if args.custom_aug:
-        train_transform = CustomAug(mean=train_mean, std=train_std)
+        train_transform = NewCustomAug()
         config.CUSTOM_AUG = True
     else:
         train_transform = BaseAug(mean=train_mean, std=train_std)
