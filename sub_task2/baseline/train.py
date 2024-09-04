@@ -100,11 +100,15 @@ def train_run(
         val_loss = 0
         val_true, val_pred = [], []
         model.eval()
+        if args.model_half:
+            model.half()
         with torch.no_grad():
             for imgs, label in tqdm(val_loader, desc=f'Validation Epoch {epoch + 1}/{epochs}', leave=False):
                 imgs, label = imgs.to(config.DEVICE), label.to(config.DEVICE)
-                
-                outs = model(imgs.float())
+                if args.model_half:
+                    outs = model(imgs.half())
+                else:
+                    outs = model(imgs.float())
                 preds = torch.argmax(F.softmax(outs, dim=1), dim=1)
 
                 val_true.extend(label.cpu().numpy())
@@ -155,10 +159,12 @@ def train_run(
             model_save(config, save_path, model, epoch, val_metric)
             print(f'Save Model {val_metric:.4f} in : {save_path}')
             best_val_metric = val_metric
+        if args.model_half:
+            model.float()
 
 def main():
     args = parser_arguments()
-    
+
     # config setting
     config = BaseConfig(
         base_path=args.base_path,
@@ -186,6 +192,9 @@ def main():
         img_type=args.img_type,
     )
     seed_everything(config.SEED)
+
+    if (args.model_half):
+        config.MODEL_HALF = True
 
     if (args.wandb):
         #project name & run name setting

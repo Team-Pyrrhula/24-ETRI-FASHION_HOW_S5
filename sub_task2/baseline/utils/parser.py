@@ -49,6 +49,9 @@ def parser_arguments():
     
     # dataset mean std 
     parser.add_argument("--mean_std", action='store_true', help='dataset mean std calcul')
+
+    # save model float16
+    parser.add_argument("--model_half", action='store_true', help='save model half')
     args = parser.parse_args()
     return args
 
