@@ -8,7 +8,7 @@ class BaseAug:
         self.transform = A.Compose(
             [
                 A.Resize(resize, resize),
-                #   A.Normalize(mean=mean, std=std),
+                A.Normalize(mean=mean, std=std),
             ]
         )
         self.tensor = transforms.ToTensor()

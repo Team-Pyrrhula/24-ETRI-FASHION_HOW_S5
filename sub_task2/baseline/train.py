@@ -216,10 +216,10 @@ def main():
     config.TRAIN_STD = train_std
 
     if args.custom_aug:
-        train_transform = NewCustomAug()
+        train_transform = CustomAug(resize=config.RESIZE)
         config.CUSTOM_AUG = True
     else:
-        train_transform = BaseAug(mean=train_mean, std=train_std)
+        train_transform = BaseAug(resize=config.RESIZE, mean=train_mean, std=train_std)
         config.CUSTOM_AUG = False
         
     val_transform = BaseAug(mean=train_mean, std=train_std)
