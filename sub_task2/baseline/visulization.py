@@ -1,6 +1,6 @@
 from config import BaseConfig
 from dataset import ETRI_Dataset_color
-from transform import CustomAug, NewCustomAug
+from transform import CustomAug, ClassAug
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 import torch
@@ -37,9 +37,14 @@ std = [0.229, 0.224, 0.225]
 # 정규화된 이미지 반정규화
 
 config = BaseConfig(train_csv='Fashion-How24_sub2_tain_remgb_clean.csv')
-transform = NewCustomAug(224)
+config.CLASS_AUG = 1
+config.REMGB = 1
+config.CROP = 1
+
+
+transform = ClassAug(224)
 dataset = ETRI_Dataset_color(config, True, transform=transform, types='train', remgb=1, crop=1)
-train_loader = DataLoader(dataset, batch_size=1)
+train_loader = DataLoader(dataset, batch_size=100)
 
 for img, label in train_loader:
     #imgs = denormalize(img[0], mean, std)

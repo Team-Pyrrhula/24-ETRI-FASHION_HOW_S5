@@ -114,6 +114,7 @@ class Inference_BaseConfig():
             resize:int=224,
             img_type:str='RGB',
             pretrain:bool=False,
+            class_aug:bool=False,
             ):
         
         self.INFO = info
@@ -129,6 +130,7 @@ class Inference_BaseConfig():
         self.RESIZE = resize
         self.IMG_TYPE = img_type
         self.PRETRAIN = pretrain
+        self.CLASS_AUG = class_aug
 
         now = datetime.now()
         self.TIME = now.strftime("%Y_%m_%d_%H_%M")

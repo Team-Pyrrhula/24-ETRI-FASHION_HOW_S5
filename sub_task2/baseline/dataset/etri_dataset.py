@@ -66,7 +66,12 @@ class ETRI_Dataset_color():
 
         #transform setting
         if self.transform is not None:
-            image = self.transform(image, xy_minmax)
+
+            # if class_aug
+            if self.types == 'train' and self.config.CLASS_AUG :
+                image = self.transform(image, self.label[idx], xy_minmax)
+            else:
+                image = self.transform(image, xy_minmax)
 
         if self.train_mode:
             label = self.label[idx]

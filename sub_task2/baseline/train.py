@@ -4,7 +4,7 @@ logging.disable(logging.CRITICAL)
 
 from utils import parser_arguments, model_save, save2img, seed_everything, calculate_mean_std
 from config import BaseConfig
-from transform import BaseAug, CustomAug, NewCustomAug
+from transform import BaseAug, CustomAug, ClassAug
 from dataset import ETRI_Dataset_color
 from model import ETRI_model_color
 from loose import create_criterion
@@ -216,7 +216,11 @@ def main():
     config.TRAIN_STD = train_std
 
     if args.custom_aug:
-        train_transform = CustomAug(resize=config.RESIZE)
+        if args.class_aug:
+            train_transform = ClassAug(resize=config.RESIZE)
+            config.CLASS_AUG = True
+        else:
+            train_transform = CustomAug(resize=config.RESIZE)
         config.CUSTOM_AUG = True
     else:
         train_transform = BaseAug(resize=config.RESIZE, mean=train_mean, std=train_std)
@@ -238,26 +242,32 @@ def main():
     else:
         sampler = None
     
-    class_weights = [
-        0.0435,  # Red
-        0.0988,  # Coral
-        0.1075,  # Orange
-        0.0494,  # Pink
-        0.0653,  # Purple
-        0.0677,  # Brown
-        0.0761,  # Beige
-        0.0690,  # Ivory
-        0.0609,  # Yellow
-        0.0988,  # Mustard
-        0.0475,  # Skyblue
-        0.0571,  # Royalblue
-        0.0571,  # Navy
-        0.0487,  # Green
-        0.0589,  # Khaki
-        0.0537,  # White
-        0.0463,  # Gray
-        0.0481   # Black
-    ] 
+    if args.class_weight:
+        class_weights = [
+            0.0435,  # Red
+            0.0988,  # Coral
+            0.1075,  # Orange
+            0.0494,  # Pink
+            0.0653,  # Purple
+            0.0677,  # Brown
+            0.0761,  # Beige
+            0.0690,  # Ivory
+            0.0609,  # Yellow
+            0.0988,  # Mustard
+            0.0475,  # Skyblue
+            0.0571,  # Royalblue
+            0.0571,  # Navy
+            0.0487,  # Green
+            0.0589,  # Khaki
+            0.0537,  # White
+            0.0463,  # Gray
+            0.0481   # Black
+        ]
+        class_weights.append(0.00000001)
+        config.CLASS_WEIGHT = class_weights
+        class_weights = torch.FloatTensor(class_weights).to(config.DEVICE)
+    else:
+        class_weights = None
     """
     가장 좋았던 모델의 정확성의 역수를 취했음
     가중치를 계산하는 일반적인 방법은 각 클래스의 정확도의 역수를 사용하는 것입니다. 이렇게 하면 정확도가 낮은 클래스에 더 높은 가중치가 부여됩니다. 구체적인 단계는 다음과 같습니다:
@@ -266,17 +276,6 @@ def main():
     모든 역수의 합을 구합니다.
     각 클래스의 가중치를 정규화하기 위해, 각 역수를 총합으로 나눕니다.
     """
-
-    # class_distributions_dict = dict(sorted(train_dataset.df['Color'].value_counts().to_dict().items()))
-    # class_distributions = list( v for k,v in class_distributions_dict.items())
-    # total_samples = sum(class_distributions)
-    
-    # class_weights = [total_samples / (len(class_distributions) * c) for c in class_distributions]
-    # #if model output size is 19
-    class_weights.append(0.00000001)
-    # print(class_weights)
-    config.CLASS_WEIGHT = class_weights
-    class_weights = torch.FloatTensor(class_weights).to(config.DEVICE)
     
     config.save_to_json()
     config.print_config()

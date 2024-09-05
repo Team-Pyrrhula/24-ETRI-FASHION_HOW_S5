@@ -52,6 +52,12 @@ def parser_arguments():
 
     # save model float16
     parser.add_argument("--model_half", action='store_true', help='save model half')
+    
+    # class weight
+    parser.add_argument("--class_weight", action='store_true', help='class weight')
+
+    # class aug
+    parser.add_argument("--class_aug", action='store_true', help='class_aug')
     args = parser.parse_args()
     return args
 
