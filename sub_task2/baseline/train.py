@@ -221,6 +221,7 @@ def main():
             config.CLASS_AUG = True
         else:
             train_transform = CustomAug(resize=config.RESIZE)
+            config.CLASS_AUG = False
         config.CUSTOM_AUG = True
     else:
         train_transform = BaseAug(resize=config.RESIZE, mean=train_mean, std=train_std)

@@ -6,7 +6,7 @@ from .register import register_criterion
 @register_criterion("OHEMLoss")
 
 class OHEMLoss(nn.Module):
-    def __init__(self, criterion=nn.CrossEntropyLoss, ratio=0.7, weight=None):
+    def __init__(self, ratio=0.7, weight=None):
         super(OHEMLoss, self).__init__()
         self.ratio = ratio
         self.criterion = nn.CrossEntropyLoss(weight=weight, reduction='none')
