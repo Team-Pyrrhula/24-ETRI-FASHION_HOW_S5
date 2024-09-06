@@ -1,28 +1,41 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+from .focal import FocalLoss
 from .register import register_criterion
 
 @register_criterion("OHEMFocalLoss")
 
 class OHEMFocalLoss(nn.Module):
-    def __init__(self, alpha=1, gamma=2, ratio=0.7, weight=None):
+    def __init__(self,  ratio=0.7, alpha=1, gamma=2, reduction='mean', weight=None):
         super(OHEMFocalLoss, self).__init__()
-        self.alpha = alpha  # focal loss의 alpha 값
-        self.gamma = gamma  # focal loss의 gamma 값
-        self.ratio = ratio  # OHEM에서 사용할 어려운 예제 비율
-        self.weight = weight
+        self.ratio = ratio
+        self.reduction = reduction
+        self.focal_loss = FocalLoss(alpha=alpha, gamma=gamma, reduction='none', weight=weight)
 
     def forward(self, inputs, targets):
-        ce_loss = F.cross_entropy(inputs, targets, reduction='none')
+        """
+        :param inputs: Logits from the model, shape (batch_size, num_classes).
+        :param targets: Ground truth labels, shape (batch_size).
+        :return: OHEM loss with Focal Loss.
+        """
+        losses = self.focal_loss(inputs, targets)
 
-        # Focal Loss 계산
-        pt = torch.exp(-ce_loss)  # pt는 예측 확률
-        focal_loss = self.alpha * (1 - pt) ** self.gamma * ce_loss  # focal loss 적용
+        # Sort the losses in descending order (hard examples first)
+        num_samples = len(losses)
+        sorted_losses, _ = torch.sort(losses, descending=True)
 
-        # OHEM: 가장 어려운 예제 선택
-        num_samples = int(self.ratio * focal_loss.numel())
-        hard_losses, _ = focal_loss.topk(num_samples)
+        # Select the top `ratio` fraction of hard examples
+        num_hard_examples = int(self.ratio * num_samples)
+        if num_hard_examples == 0:
+            num_hard_examples = 1
 
-        return hard_losses.mean()  # 평균 loss 반환
+        hard_loss = sorted_losses[:num_hard_examples]
+
+        # Apply the specified reduction
+        if self.reduction == 'mean':
+            return hard_loss.mean()
+        elif self.reduction == 'sum':
+            return hard_loss.sum()
+        else:
+            return hard_loss
