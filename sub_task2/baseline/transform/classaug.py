@@ -21,7 +21,9 @@
  현재 가장 좋은 성능의 모델 class 별 acc 
  단순한 접근으로 63 스코어 니까 63 아래의 클래스는 추가적인 어그멘 테이션 수행
 
- -> 1, 2, 5, 6, 7, 9, 11
+ ## 수가 적은 class에만적용해볼까
+
+ -> 1, 2, 9 
 """
 
 import albumentations as A
@@ -30,7 +32,7 @@ from albumentations.pytorch import ToTensorV2
 import random
 
 class ClassAug:
-    def __init__(self, resize=224, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), target_class=[1, 2, 5, 6, 7, 9, 11]):
+    def __init__(self, resize=224, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), target_class=[1,2,9]):
         #target key setting
         self.target_class = target_class
         self.general_transform = A.Compose(
@@ -73,9 +75,9 @@ class ClassAug:
                     A.MedianBlur(blur_limit=3),
                     A.GaussianBlur(blur_limit=3),
                     A.NoOp(),
-            ], p=0.5),
+            ], p=1.0),
             A.ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.1, rotate_limit=45, p=0.5),
-            A.CoarseDropout(max_holes=8, max_height=32, max_width=32, fill_value=0, p=0.5),
+            A.CoarseDropout(max_holes=8, max_height=40, max_width=40, fill_value=0, p=0.5),
             ToTensorV2(),
         ])
 

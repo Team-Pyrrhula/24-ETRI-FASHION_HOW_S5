@@ -231,7 +231,7 @@ def main():
 
     train_dataset = ETRI_Dataset_color(config=config, train_mode=True, transform=train_transform, types='train', remgb=config.REMGB, crop=config.CROP)
     val_dataset = ETRI_Dataset_color(config=config, train_mode=True, transform=val_transform, types='val', remgb=False, crop=False)
-
+    
     if args.sampler:
         class_counts = train_dataset.df['Color'].value_counts().sort_index().values
         class_weights = 1. / class_counts
