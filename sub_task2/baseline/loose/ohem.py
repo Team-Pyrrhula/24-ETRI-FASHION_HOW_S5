@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from .register import register_criterion
-from .focal import FocalLoss
+
 @register_criterion("OHEMLoss")
 
 class OHEMLoss(nn.Module):

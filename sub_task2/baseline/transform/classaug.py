@@ -59,25 +59,26 @@ class ClassAug:
         self.class_transforms = A.Compose([
             A.Resize(resize, resize),
             A.Normalize(mean=mean, std=std),
+            A.RandomBrightnessContrast(p=0.2),
             A.OneOf([
                     A.HorizontalFlip(),  # 좌우 반전
                     A.VerticalFlip(), # 상하 반전
-                    A.NoOp(), # Nope
+                    A.NoOp(p=0.3), # Nope
             ], p=1.0),
             A.OneOf([
-                    A.ElasticTransform(alpha=120, sigma=120 * 0.05, alpha_affine=120 * 0.03),
+                    A.ElasticTransform(),
                     A.GridDistortion(),
-                    A.OpticalDistortion(distort_limit=1, shift_limit=0.5),
-                    A.NoOp(),
+                    A.OpticalDistortion(p=0.5),
+                    A.NoOp(p=0.3),
             ], p=1.0),
             A.OneOf([
                     A.MotionBlur(blur_limit=3),
                     A.MedianBlur(blur_limit=3),
                     A.GaussianBlur(blur_limit=3),
-                    A.NoOp(),
+                    A.NoOp(p=0.3),
             ], p=1.0),
             A.ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.1, rotate_limit=45, p=0.5),
-            A.CoarseDropout(max_holes=8, max_height=40, max_width=40, fill_value=0, p=0.5),
+            A.CoarseDropout(max_holes=12, max_height=40, max_width=40, fill_value=0, p=0.5),
             ToTensorV2(),
         ])
 

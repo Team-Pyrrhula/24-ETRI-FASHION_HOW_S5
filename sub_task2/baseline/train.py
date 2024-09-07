@@ -22,6 +22,8 @@ from pprint import pprint
 import os
 import wandb
 
+from collections import Counter
+
 def mixup_data(x, y, alpha=1.0):
     '''Returns mixed inputs, pairs of targets, and lambda'''
     if alpha > 0:
@@ -124,6 +126,7 @@ def train_run(
 
         epoch_loss = train_loss / len(train_loader)
         print(f'EPOCH[{epoch+1}] MEAN LOSS : {epoch_loss:.4f}')
+        print(Counter(train_true))
 
         #train acc 
         t_cm = confusion_matrix(train_true, train_pred)
