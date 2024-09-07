@@ -4,7 +4,7 @@ logging.disable(logging.CRITICAL)
 
 from utils import parser_arguments, model_save, save2img, seed_everything, calculate_mean_std
 from config import BaseConfig
-from transform import BaseAug, CustomAug, ClassAug
+from transform import BaseAug, CustomAug, ClassAug, ValAug
 from dataset import ETRI_Dataset_color
 from model import ETRI_model_color
 from loose import create_criterion
@@ -21,6 +21,24 @@ from sklearn.metrics import f1_score, accuracy_score, confusion_matrix
 from pprint import pprint
 import os
 import wandb
+
+def mixup_data(x, y, alpha=1.0):
+    '''Returns mixed inputs, pairs of targets, and lambda'''
+    if alpha > 0:
+        lam = np.random.beta(alpha, alpha)
+    else:
+        lam = 1
+
+    batch_size = x.size(0)
+    index = torch.randperm(batch_size).to(x.device)
+
+    mixed_x = lam * x + (1 - lam) * x[index, :]
+    y_a, y_b = y, y[index]
+    return mixed_x, y_a, y_b, lam
+
+# Loss function for Mixup
+def mixup_criterion(criterion, pred, y_a, y_b, lam):
+    return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
 
 def train_run(
         model,
@@ -63,22 +81,42 @@ def train_run(
         train_loss = 0.0
 
         count = 0 
+        train_true, train_pred = [], []
 
-        for imgs, label in tqdm(train_loader, desc=f'Epoch {epoch + 1}/{epochs}', leave=False):
+        for imgs, label, origin_imgs in tqdm(train_loader, desc=f'Epoch {epoch + 1}/{epochs}', leave=False):
             imgs, label = imgs.to(config.DEVICE), label.to(config.DEVICE)
             optimizer.zero_grad()
 
             if args.save_img:
                 save2img(imgs.cpu(), epoch, save_path=config.SAVE_PATH)
 
-            out = model(imgs.float())
-            loss = criterion(out, label)
+            if args.mixup:
+                origin_imgs = origin_imgs.to(config.DEVICE)
+
+                mixed_imgs, label_a, label_b, lam = mixup_data(origin_imgs, label)
+                #save2img(mixed_imgs.cpu(), epoch, save_path=config.SAVE_PATH)
+
+                out_mixed = model(mixed_imgs.float())
+                out = model(imgs.float())
+
+                loss_mixed = mixup_criterion(criterion, out_mixed, label_a, label_b, lam)
+                loss_original = criterion(out, label)
+
+                loss = loss_mixed + loss_original
+            else:
+                out = model(imgs.float())
+                loss = criterion(out, label)
 
             loss.backward()
             optimizer.step()
 
             train_loss += loss.item()
             count += 1
+
+            #train acc cal
+            preds = torch.argmax(F.softmax(out, dim=1), dim=1)
+            train_true.extend(label.cpu().numpy())
+            train_pred.extend(preds.cpu().numpy())
 
             ## logging
             if count % config.TRAIN_METRICS_ITER == 0:
@@ -87,10 +125,23 @@ def train_run(
         epoch_loss = train_loss / len(train_loader)
         print(f'EPOCH[{epoch+1}] MEAN LOSS : {epoch_loss:.4f}')
 
+        #train acc 
+        t_cm = confusion_matrix(train_true, train_pred)
+        t_acsa = []
+        for i in range(t_cm.shape[0]):    
+            if i >= 18:
+                continue
+            # 각 클래스의 TP와 전체 샘플 수를 사용하여 정확도 계산
+            accuracy = t_cm[i, i] / np.sum(t_cm[i, :])
+            classes = label_decoder[i]
+            t_acsa.append(accuracy)
+            print(f'TRAIN Accuracy for Class {classes}: {accuracy:.2f}')
+
         #wandb logging save
         if args.wandb:
             wandb.log({
                 "Train Mean Loss" : epoch_loss,
+                'Train_ACSA': np.mean(t_acsa),
             })
 
         scheduler.step() # update scheduler
@@ -103,7 +154,7 @@ def train_run(
         if args.model_half:
             model.half()
         with torch.no_grad():
-            for imgs, label in tqdm(val_loader, desc=f'Validation Epoch {epoch + 1}/{epochs}', leave=False):
+            for imgs, label, origin_imgs in tqdm(val_loader, desc=f'Validation Epoch {epoch + 1}/{epochs}', leave=False):
                 imgs, label = imgs.to(config.DEVICE), label.to(config.DEVICE)
                 if args.model_half:
                     outs = model(imgs.half())
@@ -119,7 +170,7 @@ def train_run(
 
             epoch_val_loss = val_loss / len(val_loader)
 
-            #confusion matrix
+            #confusion 
             cm = confusion_matrix(val_true, val_pred)
             acsa = []
             for i in range(cm.shape[0]):    
@@ -179,6 +230,7 @@ def main():
         val_batch_size=args.val_batch_size,
         lr=args.lr,
         resize=args.resize,
+        val_resize=args.val_resize,
         criterion=args.criterion,
         optimizer=args.optimizer,
         scheduler=args.scheduler,
@@ -190,6 +242,9 @@ def main():
         remgb=bool(args.remgb),
         sampler=bool(args.sampler),
         img_type=args.img_type,
+        class_aug=args.class_aug,
+        custom_aug=args.custom_aug,
+        mixup=args.mixup,
     )
     seed_everything(config.SEED)
 
@@ -218,19 +273,15 @@ def main():
     if args.custom_aug:
         if args.class_aug:
             train_transform = ClassAug(resize=config.RESIZE)
-            config.CLASS_AUG = True
         else:
             train_transform = CustomAug(resize=config.RESIZE)
-            config.CLASS_AUG = False
-        config.CUSTOM_AUG = True
     else:
         train_transform = BaseAug(resize=config.RESIZE, mean=train_mean, std=train_std)
-        config.CUSTOM_AUG = False
         
-    val_transform = BaseAug(mean=train_mean, std=train_std)
+    val_transform = ValAug(resize=config.VAL_RESIZE, mean=train_mean, std=train_std)
 
-    train_dataset = ETRI_Dataset_color(config=config, train_mode=True, transform=train_transform, types='train', remgb=config.REMGB, crop=config.CROP)
-    val_dataset = ETRI_Dataset_color(config=config, train_mode=True, transform=val_transform, types='val', remgb=False, crop=False)
+    train_dataset = ETRI_Dataset_color(config=config, train_mode=True, transform=train_transform, types='train', remgb=config.REMGB, crop=config.CROP, mixup=config.MIXUP)
+    val_dataset = ETRI_Dataset_color(config=config, train_mode=True, transform=val_transform, types='val', remgb=False, crop=False, mixup=False)
     
     if args.sampler:
         class_counts = train_dataset.df['Color'].value_counts().sort_index().values

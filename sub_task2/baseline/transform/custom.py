@@ -2,6 +2,20 @@ import albumentations as A
 import numpy as np
 from albumentations.pytorch import ToTensorV2
 
+"""
+transform = A.Compose([
+    A.ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.1, rotate_limit=45, p=0.5),  # Shift, Scale, Rotate
+    A.ElasticTransform(alpha=1, sigma=50, alpha_affine=50, p=0.5),                   # Elastic 변형
+    A.GridDistortion(p=0.5),                                                        # Grid 왜곡
+    A.OpticalDistortion(distort_limit=0.5, shift_limit=0.5, p=0.5),                 # Optical 왜곡
+    A.RandomBrightnessContrast(p=0.2),                                              # 밝기 및 대비 조정
+    A.HorizontalFlip(p=0.5),                                                        # 좌우 반전
+    A.VerticalFlip(p=0.1),                                                          # 상하 반전
+    A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),             # 정규화
+    ToTensorV2()                                                                    # Tensor 변환
+])
+"""
+
 class CustomAug:
     def __init__(self, resize=224, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
         self.transform = A.Compose(

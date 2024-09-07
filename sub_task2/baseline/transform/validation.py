@@ -3,17 +3,12 @@ from albumentations.pytorch import ToTensorV2
 import numpy as np
 import torchvision.transforms as transforms
 
-class BaseAug:
+class ValAug:
     def __init__(self, resize=224, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
         self.transform = A.Compose(
             [
                 A.Resize(resize, resize),
                 A.Normalize(mean=mean, std=std),
-                A.OneOf([
-                    A.HorizontalFlip(),  # 좌우 반전
-                    A.VerticalFlip(), # 상하 반전
-                    A.NoOp(), # Nope
-                ], p=1.0), 
             ]
         )
         self.tensor = transforms.ToTensor()

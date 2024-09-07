@@ -2,6 +2,8 @@ import cv2
 import os
 import pandas as pd
 
+from transform import BaseAug
+
 class ETRI_Dataset_color():
     def __init__(self,
                 config=None,
@@ -10,6 +12,7 @@ class ETRI_Dataset_color():
                 types:str='train',
                 remgb:bool=False,
                 crop:bool=False,
+                mixup:bool=False,
                 ):
         if remgb:
             if types == 'train':
@@ -41,8 +44,9 @@ class ETRI_Dataset_color():
         self.config = config
         self.train_mode = train_mode
         self.transform = transform
+        self.mixup_tranasform = BaseAug(config.RESIZE)
         self.types = types
-
+        self.mixup = mixup
     def __len__(self):
         return (len(self.df))
     
@@ -66,6 +70,10 @@ class ETRI_Dataset_color():
 
         #transform setting
         if self.transform is not None:
+            if self.mixup:
+                origin_image = self.mixup_tranasform(image, xy_minmax)
+            else:
+                origin_image = []
 
             # if class_aug
             if self.types == 'train' and self.config.CLASS_AUG :
@@ -75,6 +83,5 @@ class ETRI_Dataset_color():
 
         if self.train_mode:
             label = self.label[idx]
-            return (image, label)
-        
+            return (image, label, origin_image)
         return (image)

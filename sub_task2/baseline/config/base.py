@@ -27,6 +27,7 @@ class BaseConfig():
                 optimizer:str = 'Adam',
                 scheduler:str = 'StepLR',
                 resize:int = 224,
+                val_resize:int = 224,
                 per_iter:float = 0.3,
                 val_metric:str = 'acc',
                 save_path:str = 'save',
@@ -35,6 +36,9 @@ class BaseConfig():
                 remgb:bool = False,
                 sampler:bool = False,
                 img_type:str='RGB',
+                class_aug:bool = False,
+                custom_aug:bool = False,
+                mixup:bool = False,
                 ):
         # info
         self.BASE_PATH = base_path
@@ -56,6 +60,7 @@ class BaseConfig():
         self.VAL_BATCH_SIZE = val_batch_size
         self.LR = lr
         self.RESIZE = resize
+        self.VAL_RESIZE = val_resize
         self.TRAIN_METRICS_ITER = int((len(pd.read_csv(self.TRAIN_DF)) // self.TRAIN_BATCH_SIZE) * per_iter)
         self.VAL_METRICS_ITER = int((len(pd.read_csv(self.VAL_DF)) // self.VAL_BATCH_SIZE) * per_iter)
         self.OPTIMIZER = optimizer
@@ -72,6 +77,11 @@ class BaseConfig():
         #save info
         self.SAVE_PATH = save_path
         self.MODEL_SAVE_TYPE = model_save_type
+
+        #aug
+        self.CLASS_AUG = class_aug
+        self.CUSTOM_AUG = custom_aug
+        self.MIXUP = mixup
 
         now = datetime.now()
         self.TIME = now.strftime("%Y_%m_%d_%H_%M")

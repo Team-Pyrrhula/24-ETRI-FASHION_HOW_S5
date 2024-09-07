@@ -15,6 +15,7 @@ def parser_arguments():
     parser.add_argument("--val_batch_size", type=int, default=128, help="val batch size")
     parser.add_argument("--lr", type=float, default=0.001, help="learning rate")
     parser.add_argument("--resize", type=int, default=224, help="img resize size")
+    parser.add_argument("--val_resize", type=int, default=224, help="val img resize size")
     parser.add_argument("--criterion", type=str, default="CrossEntropyLoss", help="train criterion")
     parser.add_argument("--optimizer", type=str, default="Adam", help="train optimzier")
     parser.add_argument("--scheduler", type=str, default="StepLR", help="train scheduler")
@@ -58,6 +59,9 @@ def parser_arguments():
 
     # class aug
     parser.add_argument("--class_aug", action='store_true', help='class_aug')
+
+    #mix up
+    parser.add_argument("--mixup", action='store_true', help='mixup')
     args = parser.parse_args()
     return args
 
