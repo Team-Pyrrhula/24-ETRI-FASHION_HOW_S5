@@ -40,6 +40,7 @@ class BaseConfig():
                 sampler_type:str='p',
                 deep_head:bool=True,
                 weight_sampler:bool=False,
+                weight_loss:list=[1.0, 1.0, 1.0]
                 ):
         # info
         self.BASE_PATH = base_path
@@ -77,6 +78,9 @@ class BaseConfig():
         self.VAL_SAMPLER = val_sampler
         self.SAMPLER_TYPE = sampler_type
         self.WEIGHT_SAMPLER =weight_sampler
+
+        #loss weight
+        self.WEIGHT_LOSS = weight_loss
 
         #save info
         self.SAVE_PATH = save_path

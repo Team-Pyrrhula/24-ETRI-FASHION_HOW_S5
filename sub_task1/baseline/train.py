@@ -64,7 +64,7 @@ def train_run(
             loss_daily = criterion(out_daily, l1)
             loss_gender = criterion(out_gender, l2)
             loss_embel = criterion(out_embel, l3)
-            loss = loss_daily + loss_gender + loss_embel
+            loss = (loss_daily * config.WEIGHT_LOSS[0]) + (loss_gender * config.WEIGHT_LOSS[1]) + (loss_embel * config.WEIGHT_LOSS[2])
 
             loss.backward()
             optimizer.step()

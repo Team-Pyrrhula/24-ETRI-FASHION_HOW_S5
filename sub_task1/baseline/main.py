@@ -63,7 +63,9 @@ def main():
         val_sampler=args.val_sampler,
         sampler_type=args.sampler_type,
         deep_head=deep_head,
-        weight_sampler=args.weight_sampler
+        weight_sampler=args.weight_sampler,
+        weight_loss=[args.daily_weight, args.gender_weight, args.embel_weight]
+
     )
     #fix seed
     seed_everything(config.SEED)

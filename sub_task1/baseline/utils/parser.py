@@ -39,7 +39,12 @@ def parser_arguments():
 
     #loader smapler 
     parser.add_argument("--weight_sampler" , action='store_true', help="weight sampler use")
-    
+
+    # loss weight
+    parser.add_argument("--daily_weight", type=float, default=1.0, help='daily_weight')
+    parser.add_argument("--gender_weight", type=float, default=1.0, help='gender_weight')
+    parser.add_argument("--embel_weight", type=float, default=1.0, help='gender_weight')
+
     args = parser.parse_args()
     return args
 
