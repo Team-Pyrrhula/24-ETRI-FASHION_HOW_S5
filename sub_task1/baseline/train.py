@@ -61,9 +61,9 @@ def train_run(
                 save2img(imgs.cpu(), epoch, save_path=config.SAVE_PATH)
 
             out_daily, out_gender, out_embel = model(imgs)
-            loss_daily = criterion(out_daily, l1)
-            loss_gender = criterion(out_gender, l2)
-            loss_embel = criterion(out_embel, l3)
+            loss_daily = criterion['daily'](out_daily, l1)
+            loss_gender = criterion['gender'](out_gender, l2)
+            loss_embel = criterion['embel'](out_embel, l3)
             loss = (loss_daily * config.WEIGHT_LOSS[0]) + (loss_gender * config.WEIGHT_LOSS[1]) + (loss_embel * config.WEIGHT_LOSS[2])
 
             loss.backward()
@@ -180,7 +180,7 @@ def sampler_train_run(
                 else:
                     _, _, out = model(imgs)
 
-                loss = criterion(out, labels)
+                loss = criterion[key](out, labels)
                 loss.backward()
                 optimizer.step()
 
@@ -254,9 +254,9 @@ def val_run(model,
             val_true['l2'].extend(l2.cpu().numpy())
             val_true['l3'].extend(l3.cpu().numpy())
 
-            loss_daily = criterion(out_daily, l1)
-            loss_gender = criterion(out_gender, l2)
-            loss_embel = criterion(out_embel, l3)
+            loss_daily = criterion['daily'](out_daily, l1)
+            loss_gender = criterion['gender'](out_gender, l2)
+            loss_embel = criterion['embel'](out_embel, l3)
             loss = loss_daily + loss_gender + loss_embel
 
             losses['val_loss'] += loss.item()
@@ -374,7 +374,7 @@ def sampler_val_run(model,
                 val_acc[key].append(accuracy_score(labels.cpu().numpy(), pred.cpu().numpy()))
                 val_f1[key].append(f1_score(labels.cpu().numpy(), pred.cpu().numpy(), average='macro', zero_division=1))
 
-                loss = criterion(out, labels)
+                loss = criterion[key](out, labels)
                 losses[key] += loss.item()
                 losses['total'] += loss.item()
 

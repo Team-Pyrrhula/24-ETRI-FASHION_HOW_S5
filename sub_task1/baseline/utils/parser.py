@@ -44,6 +44,9 @@ def parser_arguments():
     parser.add_argument("--daily_weight", type=float, default=1.0, help='daily_weight')
     parser.add_argument("--gender_weight", type=float, default=1.0, help='gender_weight')
     parser.add_argument("--embel_weight", type=float, default=1.0, help='gender_weight')
+    
+    parser.add_argument("--class_weight" , action='store_true', help="loss class weight")
+    parser.add_argument("--weight_type", type=str, default='log')
 
     args = parser.parse_args()
     return args

@@ -9,8 +9,8 @@ class BaseConfig():
     def __init__(self,
                 info:dict={
                     'path': 'image_name',
-                    'label_1_num': 7,
-                    'label_2_num': 6,
+                    'label_1_num': 6,
+                    'label_2_num': 5,
                     'label_3_num': 3,
                     'label_1' : 'Daily',
                     'label_2' : 'Gender',

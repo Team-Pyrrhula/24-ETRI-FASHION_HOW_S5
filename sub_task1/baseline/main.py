@@ -26,6 +26,21 @@ def compute_sample_weights(labels):
     sample_weights = np.sum(labels * class_weights, axis=1)
     return sample_weights
 
+# 1. 로그 스케일
+def calculate_weights_log(accuracies):
+    return list(1 / np.log(np.array(accuracies) + 1.01))
+
+# 2. 선형 스케일링
+def calculate_weights_linear(accuracies):
+    weights = 1 - np.array(accuracies)
+    return list(weights / np.sum(weights))
+
+# 3. 최대값 제한
+def calculate_weights_capped(accuracies, max_weight=5):
+    weights = 1 / (np.array(accuracies) + 1e-5)
+    weights = np.minimum(weights, max_weight)
+    return list(weights / np.sum(weights))
+
 def main():
     args = parser_arguments()
 
@@ -69,6 +84,34 @@ def main():
     )
     #fix seed
     seed_everything(config.SEED)
+
+    # class weight
+    if (args.class_weight):
+
+        daily_accuracies = [0.01, 0.77, 0.46, 0.47, 0.40, 0.94]
+        gender_accuracies = [0.18, 0.47, 0.50, 0.78, 0.56]
+        embel_accuracies = [0.75, 0.48, 0.59]
+
+        if args.weight_type == 'log':
+            daily_weight = torch.FloatTensor(calculate_weights_log(daily_accuracies))
+            gender_weight = torch.FloatTensor(calculate_weights_log(gender_accuracies))
+            embel_weight = torch.FloatTensor(calculate_weights_log(embel_accuracies))
+        elif args.weigt_type == 'linear':
+            daily_weight = torch.FloatTensor(calculate_weights_linear(daily_accuracies))
+            gender_weight = torch.FloatTensor(calculate_weights_linear(gender_accuracies))
+            embel_weight = torch.FloatTensor(calculate_weights_linear(embel_accuracies))
+        else:
+            daily_weight = torch.FloatTensor(calculate_weights_capped(daily_accuracies))
+            gender_weight = torch.FloatTensor(calculate_weights_capped(gender_accuracies))
+            embel_weight = torch.FloatTensor(calculate_weights_capped(embel_accuracies))
+
+    else:
+        daily_weight = None
+        gender_weight = None
+        embel_weight = None
+    
+    config.CLASS_WEIGHT = args.class_weight
+    config.WEIGHT_TYPE = args.weight_type
 
     #wandb project logging
     if (args.wandb):
@@ -116,9 +159,7 @@ def main():
         labels = df[[config.INFO['label_1'], config.INFO['label_2'], config.INFO['label_3']]].values.tolist()
 
         weights = compute_sample_weights(labels)
-        print(f'Sampler weight : {weights}')
         sampler = WeightedRandomSampler(weights, len(weights), replacement=True)
-        config.SAMPLER_WEIGHT = weights.tolist()
     else:
         sampler = None
 
@@ -148,7 +189,11 @@ def main():
     else:
         model = ETRI_model(config).to(config.DEVICE)
 
-    criterion = create_criterion(config.CRITERION).to(config.DEVICE)
+    criterion = {
+        'daily' : create_criterion(config.CRITERION, weight=daily_weight).to(config.DEVICE),
+        'gender' :create_criterion(config.CRITERION, weight=gender_weight).to(config.DEVICE),
+        'embel' : create_criterion(config.CRITERION, weight=embel_weight).to(config.DEVICE)
+    }
     optimizer = create_optimizer(
                 config.OPTIMIZER,
                 params = model.parameters(),
