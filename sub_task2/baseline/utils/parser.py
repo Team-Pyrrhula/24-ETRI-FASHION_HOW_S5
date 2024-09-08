@@ -56,6 +56,7 @@ def parser_arguments():
     
     # class weight
     parser.add_argument("--class_weight", action='store_true', help='class weight')
+    parser.add_argument("--weight_type", type=str, default='log')
 
     # class aug
     parser.add_argument("--class_aug", action='store_true', help='class_aug')

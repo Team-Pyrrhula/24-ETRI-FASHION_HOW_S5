@@ -24,6 +24,28 @@ import wandb
 
 from collections import Counter
 
+def compute_sample_weights(labels):
+    label_counts = np.sum(labels, axis=0)
+    class_weights = 1.0 / (label_counts + 1e-5)  # 0으로 나누는 것을 방지
+    sample_weights = np.sum(labels * class_weights, axis=1)
+    return sample_weights
+
+# 1. 로그 스케일
+def calculate_weights_log(accuracies):
+    return list(1 / np.log(np.array(accuracies) + 1.01))
+
+# 2. 선형 스케일링
+def calculate_weights_linear(accuracies):
+    weights = 1 - np.array(accuracies)
+    return list(weights / np.sum(weights))
+
+# 3. 최대값 제한
+def calculate_weights_capped(accuracies, max_weight=5):
+    weights = 1 / (np.array(accuracies) + 1e-5)
+    weights = np.minimum(weights, max_weight)
+    return list(weights / np.sum(weights))
+
+
 def mixup_data(x, y, alpha=1.0):
     '''Returns mixed inputs, pairs of targets, and lambda'''
     if alpha > 0:
@@ -287,6 +309,7 @@ def main():
     val_dataset = ETRI_Dataset_color(config=config, train_mode=True, transform=val_transform, types='val', remgb=False, crop=False, mixup=False)
     
     if args.sampler:
+        print(train_dataset.df['Color'].value_counts())
         class_counts = train_dataset.df['Color'].value_counts().sort_index().values
         class_weights = 1. / class_counts
 
@@ -298,28 +321,37 @@ def main():
         sampler = None
     
     if args.class_weight:
-        class_weights = [
-            0.0435,  # Red
-            0.0988,  # Coral
-            0.1075,  # Orange
-            0.0494,  # Pink
-            0.0653,  # Purple
-            0.0677,  # Brown
-            0.0761,  # Beige
-            0.0690,  # Ivory
-            0.0609,  # Yellow
-            0.0988,  # Mustard
-            0.0475,  # Skyblue
-            0.0571,  # Royalblue
-            0.0571,  # Navy
-            0.0487,  # Green
-            0.0589,  # Khaki
-            0.0537,  # White
-            0.0463,  # Gray
-            0.0481   # Black
-        ]
+        # class_weights = [
+        #     0.0435,  # Red
+        #     0.0988,  # Coral
+        #     0.1075,  # Orange
+        #     0.0494,  # Pink
+        #     0.0653,  # Purple
+        #     0.0677,  # Brown
+        #     0.0761,  # Beige
+        #     0.0690,  # Ivory
+        #     0.0609,  # Yellow
+        #     0.0988,  # Mustard
+        #     0.0475,  # Skyblue
+        #     0.0571,  # Royalblue
+        #     0.0571,  # Navy
+        #     0.0487,  # Green
+        #     0.0589,  # Khaki
+        #     0.0537,  # White
+        #     0.0463,  # Gray
+        #     0.0481   # Black
+        # ]
+        # class_weights.append(0.00000001)
+        acces = [0.84, 0.38, 0.37, 0.69, 0.62, 0.63, 0.55, 0.56, 0.55, 0.39, 0.77, 0.65, 0.61, 0.70, 0.72, 0.60, 0.73, 0.75]
+        if args.weight_type == 'log':
+            class_weights = calculate_weights_log(acces)
+        elif args.weight_type == 'linear':
+            class_weights = calculate_weights_linear(acces)
+        else:
+            class_weights = calculate_weights_capped(acces)
         class_weights.append(0.00000001)
         config.CLASS_WEIGHT = class_weights
+        config.WEIGHT_TYPE = args.weight_type
         class_weights = torch.FloatTensor(class_weights).to(config.DEVICE)
     else:
         class_weights = None
