@@ -38,7 +38,8 @@ class BaseConfig():
                 train_sampler:bool = False,
                 val_sampler:bool = False,
                 sampler_type:str='p',
-                deep_head:bool=True
+                deep_head:bool=True,
+                weight_sampler:bool=False,
                 ):
         # info
         self.BASE_PATH = base_path
@@ -75,6 +76,7 @@ class BaseConfig():
         self.TRAIN_SAMPLER = train_sampler
         self.VAL_SAMPLER = val_sampler
         self.SAMPLER_TYPE = sampler_type
+        self.WEIGHT_SAMPLER =weight_sampler
 
         #save info
         self.SAVE_PATH = save_path

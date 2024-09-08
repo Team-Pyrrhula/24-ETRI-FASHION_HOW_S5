@@ -1,7 +1,6 @@
 import albumentations as A
 import numpy as np
 from albumentations.pytorch import ToTensorV2
-from .background import BackgroundRemover
 
 class CustomAug:
     def __init__(self, resize=224, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):

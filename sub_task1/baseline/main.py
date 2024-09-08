@@ -10,14 +10,21 @@ from config import BaseConfig, MAEConfig
 from transform import BaseAug, CustomAug
 from dataset import ETRI_Dataset, Sampler_Dataset
 from model import ETRI_model, ETRI_MAE_model, MAE_Model
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 from train import train_run, sampler_train_run
 
 import wandb
 import pandas as pd
 import torch
 import timm
+import numpy as np
 from importlib import import_module
+
+def compute_sample_weights(labels):
+    label_counts = np.sum(labels, axis=0)
+    class_weights = 1.0 / (label_counts + 1e-5)  # 0으로 나누는 것을 방지
+    sample_weights = np.sum(labels * class_weights, axis=1)
+    return sample_weights
 
 def main():
     args = parser_arguments()
@@ -55,11 +62,9 @@ def main():
         train_sampler=args.train_sampler,
         val_sampler=args.val_sampler,
         sampler_type=args.sampler_type,
-        deep_head=deep_head
+        deep_head=deep_head,
+        weight_sampler=args.weight_sampler
     )
-    config.save_to_json()
-    config.print_config()
-
     #fix seed
     seed_everything(config.SEED)
 
@@ -73,8 +78,8 @@ def main():
         wandb_config = {key: value for key, value in config.__dict__.items() if not key.startswith('_')}
         wandb.config.update(wandb_config)
 
-    train_transform = CustomAug()
-    val_transform = BaseAug()
+    train_transform = CustomAug(config.RESIZE)
+    val_transform = BaseAug(config.RESIZE)
 
     #Make dataset (smapler 기준으로)
     if config.TRAIN_SAMPLER:
@@ -103,11 +108,25 @@ def main():
             'all' : ETRI_Dataset(config=config, train_mode=True, transform=val_transform, types='val')
         }
 
+    #weight_sampler
+    if not config.TRAIN_SAMPLER and config.WEIGHT_SAMPLER:
+        df = pd.read_csv(config.TRAIN_DF)
+        labels = df[[config.INFO['label_1'], config.INFO['label_2'], config.INFO['label_3']]].values.tolist()
+
+        weights = compute_sample_weights(labels)
+        print(f'Sampler weight : {weights}')
+        sampler = WeightedRandomSampler(weights, len(weights), replacement=True)
+        config.SAMPLER_WEIGHT = weights.tolist()
+    else:
+        sampler = None
+
+    config.save_to_json()
+    config.print_config()
 
     #Make Loader
     train_dataloader_dict, val_dataloader_dict = {}, {}
     for key, dataset in train_dataset_dict.items():
-        train_dataloader_dict[key] = DataLoader(dataset, batch_size=config.TRAIN_BATCH_SIZE, num_workers=config.NUM_WORKERS)
+        train_dataloader_dict[key] = DataLoader(dataset, batch_size=config.TRAIN_BATCH_SIZE, num_workers=config.NUM_WORKERS, sampler=sampler)
     for key, dataset in val_dataset_dict.items():
         val_dataloader_dict[key] = DataLoader(dataset, batch_size=config.VAL_BATCH_SIZE, num_workers=config.NUM_WORKERS)
 

@@ -4,9 +4,16 @@ from tqdm import tqdm
 import torch
 import torch.nn.functional as F
 import numpy as np
-from sklearn.metrics import f1_score, accuracy_score
+from sklearn.metrics import f1_score, accuracy_score, confusion_matrix
+from pprint import pprint
 from pprint import pprint
 import os
+
+label_decoder = {
+    'l1' : 'daily',
+    'l2' : 'gender',
+    'l3' : 'embel',
+}
 
 def train_run(
         model,
@@ -35,6 +42,16 @@ def train_run(
         embel_loss = 0.0
 
         count = 0 
+        train_true = {
+            'l1':[],
+            'l2':[],
+            'l3':[],
+        }
+        train_pred = {
+            'l1':[],
+            'l2':[],
+            'l3':[],
+        }
 
         for imgs, l1, l2, l3 in tqdm(train_loader, desc=f'Epoch {epoch + 1}/{epochs}', leave=False):
             imgs, l1, l2, l3 = imgs.to(config.DEVICE), l1.to(config.DEVICE), l2.to(config.DEVICE), l3.to(config.DEVICE)
@@ -57,11 +74,36 @@ def train_run(
             gender_loss += loss_gender.item()
             embel_loss += loss_embel.item()
 
+            l1_preds = torch.argmax(F.softmax(out_daily, dim=1), dim=1)
+            l2_preds = torch.argmax(F.softmax(out_gender, dim=1), dim=1)
+            l3_preds = torch.argmax(F.softmax(out_embel, dim=1), dim=1)
+            train_pred['l1'].extend(l1_preds.cpu().numpy())
+            train_pred['l2'].extend(l2_preds.cpu().numpy())
+            train_pred['l3'].extend(l3_preds.cpu().numpy())
+            train_true['l1'].extend(l1.cpu().numpy())
+            train_true['l2'].extend(l2.cpu().numpy())
+            train_true['l3'].extend(l3.cpu().numpy())
+
             count += 1
 
             ## logging
             if count % config.TRAIN_METRICS_ITER == 0:
                 print(f'TRAIN LOSSES : {train_loss / (count * config.TRAIN_BATCH_SIZE):.4f}')
+        #calculate confusion matrix
+        for key in ['l1', 'l2', 'l3']:
+            t_cm = confusion_matrix(train_true[key], train_pred[key])
+            t_acsa =[]
+            for i in range(t_cm.shape[0]):
+                denominator = np.sum(t_cm[i, :])
+
+                if denominator == 0:
+                    accuracy = 0  
+                else:
+                    accuracy = t_cm[i, i] / denominator
+
+                classes = label_decoder[key]
+                t_acsa.append(accuracy)
+                print(f'TRAIN Accuracy for Class {classes}_{i}: {accuracy:.2f}')
 
         epoch_loss = train_loss / len(train_loader)
         epoch_daily_loss = daily_loss / len(train_loader)
@@ -191,16 +233,7 @@ def val_run(model,
         'val_gender_loss':0.0,
         'val_embel_loss':0.0,
     }
-    val_acc = {
-        'daily' : [],
-        'gender' : [],
-        'embel' : [],
-    }
-    val_f1 = {
-        'daily' : [],
-        'gender' : [],
-        'embel' : [],
-    }
+    val_true, val_pred = {'l1':[], 'l2':[], 'l3':[]}, {'l1':[], 'l2':[], 'l3':[]}
 
     model.eval()
     with torch.no_grad():
@@ -213,13 +246,13 @@ def val_run(model,
             gender_pred = torch.argmax(F.softmax(out_gender, dim=1), dim=1)
             embel_pred = torch.argmax(F.softmax(out_embel, dim=1), dim=1)
 
-            val_acc['daily'].append(accuracy_score(l1.cpu().numpy(), daily_pred.cpu().numpy()))
-            val_acc['gender'].append(accuracy_score(l2.cpu().numpy(), gender_pred.cpu().numpy()))
-            val_acc['embel'].append(accuracy_score(l3.cpu().numpy(), embel_pred.cpu().numpy()))
-
-            val_f1['daily'].append(f1_score(l1.cpu().numpy(), daily_pred.cpu().numpy(), average='macro', zero_division=1))
-            val_f1['gender'].append(f1_score(l2.cpu().numpy(), gender_pred.cpu().numpy(), average='macro', zero_division=1))
-            val_f1['embel'].append(f1_score(l3.cpu().numpy(), embel_pred.cpu().numpy(), average='macro', zero_division=1))
+            #extend pred & label
+            val_pred['l1'].extend(daily_pred.cpu().numpy())
+            val_pred['l2'].extend(gender_pred.cpu().numpy())
+            val_pred['l3'].extend(embel_pred.cpu().numpy())
+            val_true['l1'].extend(l1.cpu().numpy())
+            val_true['l2'].extend(l2.cpu().numpy())
+            val_true['l3'].extend(l3.cpu().numpy())
 
             loss_daily = criterion(out_daily, l1)
             loss_gender = criterion(out_gender, l2)
@@ -238,17 +271,31 @@ def val_run(model,
 
         metrics = {
         'val_loss' : epoch_val_loss,
-        'val_daily_acc' : np.mean(val_acc['daily']),
-        'val_gender_acc': np.mean(val_acc['gender']),
-        'val_embel_acc': np.mean(val_acc['embel']),
-        'val_daily_f1' : np.mean(val_f1['daily']),
-        'val_gender_f1' : np.mean(val_f1['gender']),
-        'val_embel_f1' : np.mean(val_f1['embel']),
+        'val_daily_acc' : accuracy_score(val_true['l1'], val_pred['l1']),
+        'val_gender_acc': accuracy_score(val_true['l2'], val_pred['l2']),
+        'val_embel_acc': accuracy_score(val_true['l3'], val_pred['l3']),
+        'val_daily_f1' : f1_score(val_true['l1'], val_pred['l1'], average='macro', zero_division=1),
+        'val_gender_f1' : f1_score(val_true['l2'], val_pred['l2'], average='macro', zero_division=1),
+        'val_embel_f1' : f1_score(val_true['l3'], val_pred['l3'], average='macro', zero_division=1),
         'val_daily_loss' : epoch_val_daily_loss,
         'val_gender_loss' : epoch_val_gender_loss,
         'val_embel_loss' : epoch_val_embel_loss,
         }
-        
+
+        print("+++++ VAL CM +++++")
+        for key in ['l1', 'l2', 'l3']:
+            cm = confusion_matrix(val_true[key], val_pred[key])
+            acsa = []
+            for i in range(cm.shape[0]):
+                denominator = np.sum(cm[i, :])
+                if denominator == 0:
+                    accuracy = 0  
+                else:
+                    accuracy = cm[i, i] / denominator
+                acsa.append(accuracy)
+                classes = label_decoder[key]
+                print(f'Accuracy for Class {classes}_{i} : {accuracy:.2f}')
+
         print('++++++ VAL METRICS ++++++')
         pprint(metrics)
         val_acc_mean = (metrics['val_daily_acc'] + metrics['val_gender_acc'] + metrics['val_embel_acc']) / 3

@@ -36,6 +36,10 @@ def parser_arguments():
     parser.add_argument("--mae_pretrined_model_path", type=str, default="./save/mae/fastvit_t8.apple_in1k/49_0.2315.pt")
     parser.add_argument("--mae_head", type=str, default="deep", help='mae classifier deeper')
     parser.add_argument("--mae_freeze", type=int, default=1, help='mae feature map freeze -> [1, 0]')
+
+    #loader smapler 
+    parser.add_argument("--weight_sampler" , action='store_true', help="weight sampler use")
+    
     args = parser.parse_args()
     return args
 
