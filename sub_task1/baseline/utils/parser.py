@@ -48,6 +48,9 @@ def parser_arguments():
     parser.add_argument("--class_weight" , action='store_true', help="loss class weight")
     parser.add_argument("--weight_type", type=str, default='log')
 
+    #crop
+    parser.add_argument("--crop", action='store_true', help='crop use')
+
     args = parser.parse_args()
     return args
 

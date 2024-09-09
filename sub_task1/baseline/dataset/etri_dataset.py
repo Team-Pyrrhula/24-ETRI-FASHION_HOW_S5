@@ -9,6 +9,7 @@ class ETRI_Dataset(Dataset):
                 train_mode:bool=True,
                 transform=None,
                 types:str='train',
+                crop:bool=False,
                 ):
         
         if types == 'train':
@@ -27,6 +28,13 @@ class ETRI_Dataset(Dataset):
             self.label_3 = self.df[config.INFO['label_3']].values
         self.images = self.df[config.INFO['path']].values
 
+        self.crop = crop
+        if crop:
+            self.xmins = self.df['BBox_xmin'].values
+            self.ymins = self.df['BBox_ymin'].values
+            self.xmaxs = self.df['BBox_xmax'].values
+            self.ymaxs = self.df['BBox_ymax'].values
+
         self.config = config
         self.train_mode = train_mode
         self.transform = transform
@@ -42,8 +50,13 @@ class ETRI_Dataset(Dataset):
             image = cv2.imread(os.path.join(self.config.DATA_PATH, self.image_path, self.images[idx]))
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
+        if self.crop:
+            xy_minmax = (self.xmins[idx], self.ymins[idx], self.xmaxs[idx], self.ymaxs[idx])
+        else:
+            xy_minmax = None
+
         if self.transform is not None:
-            image = self.transform(image)
+            image = self.transform(image, xy_minmax)
 
         if self.train_mode:
             label_1 = self.label_1[idx]

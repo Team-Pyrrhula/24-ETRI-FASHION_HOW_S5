@@ -7,7 +7,7 @@ from loose import create_criterion
 from optimizer import create_optimizer
 
 from config import BaseConfig, MAEConfig
-from transform import BaseAug, CustomAug
+from transform import BaseAug, CustomAug, InferenceAug
 from dataset import ETRI_Dataset, Sampler_Dataset
 from model import ETRI_model, ETRI_MAE_model, MAE_Model
 from torch.utils.data import DataLoader, WeightedRandomSampler
@@ -79,8 +79,8 @@ def main():
         sampler_type=args.sampler_type,
         deep_head=deep_head,
         weight_sampler=args.weight_sampler,
-        weight_loss=[args.daily_weight, args.gender_weight, args.embel_weight]
-
+        weight_loss=[args.daily_weight, args.gender_weight, args.embel_weight],
+        crop=args.crop,
     )
     #fix seed
     seed_everything(config.SEED)
@@ -96,7 +96,7 @@ def main():
             daily_weight = torch.FloatTensor(calculate_weights_log(daily_accuracies))
             gender_weight = torch.FloatTensor(calculate_weights_log(gender_accuracies))
             embel_weight = torch.FloatTensor(calculate_weights_log(embel_accuracies))
-        elif args.weigt_type == 'linear':
+        elif args.weight_type == 'linear':
             daily_weight = torch.FloatTensor(calculate_weights_linear(daily_accuracies))
             gender_weight = torch.FloatTensor(calculate_weights_linear(gender_accuracies))
             embel_weight = torch.FloatTensor(calculate_weights_linear(embel_accuracies))
@@ -124,20 +124,20 @@ def main():
         wandb.config.update(wandb_config)
 
     train_transform = CustomAug(config.RESIZE)
-    val_transform = BaseAug(config.RESIZE)
+    val_transform = InferenceAug(config.RESIZE)
 
     #Make dataset (smapler 기준으로)
     if config.TRAIN_SAMPLER:
         train_df = pd.read_csv(config.TRAIN_DF)
         daily_df, gender_df, embel_df = etri_sampler(df=train_df, types=config.SAMPLER_TYPE)
         train_dataset_dict = {
-            'daily' : Sampler_Dataset(daily_df, label_type='Daily', config=config, train_mode=True, transform=train_transform, types='train'),
-            'gender' : Sampler_Dataset(gender_df, label_type='Gender', config=config, train_mode=True, transform=train_transform, types='train'),
-            'embel' : Sampler_Dataset(embel_df, label_type='Embellishment', config=config, train_mode=True, transform=train_transform, types='train'),
+            'daily' : Sampler_Dataset(daily_df, label_type='Daily', config=config, train_mode=True, transform=train_transform, types='train',crop=config.CROP),
+            'gender' : Sampler_Dataset(gender_df, label_type='Gender', config=config, train_mode=True, transform=train_transform, types='train', crop=config.CROP),
+            'embel' : Sampler_Dataset(embel_df, label_type='Embellishment', config=config, train_mode=True, transform=train_transform, types='train', crop=config.CROP),
         }
     else:
         train_dataset_dict = {
-            'all' : ETRI_Dataset(config=config, train_mode=True, transform=train_transform, types='train')
+            'all' : ETRI_Dataset(config=config, train_mode=True, transform=train_transform, types='train', crop=config.CROP)
         }
 
     if config.VAL_SAMPLER:

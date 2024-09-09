@@ -40,7 +40,8 @@ class BaseConfig():
                 sampler_type:str='p',
                 deep_head:bool=True,
                 weight_sampler:bool=False,
-                weight_loss:list=[1.0, 1.0, 1.0]
+                weight_loss:list=[1.0, 1.0, 1.0],
+                crop:bool=False,
                 ):
         # info
         self.BASE_PATH = base_path
@@ -86,6 +87,7 @@ class BaseConfig():
         self.SAVE_PATH = save_path
         self.MODEL_SAVE_TYPE = model_save_type
 
+        self.CROP = crop
 
         now = datetime.now()
         self.TIME = now.strftime("%Y_%m_%d_%H_%M")
@@ -118,8 +120,8 @@ class Inference_BaseConfig():
     def __init__(self,
             info:dict={
                 'path': 'image_name',
-                'label_1_num': 7,
-                'label_2_num': 6,
+                'label_1_num': 6,
+                'label_2_num': 5,
                 'label_3_num': 3,
                 'label_1' : 'Daily',
                 'label_2' : 'Gender',
