@@ -51,6 +51,8 @@ def parser_arguments():
     #crop
     parser.add_argument("--crop", action='store_true', help='crop use')
 
+    #epoch_weigt_loss
+    parser.add_argument("--epoch_weight", action='store_true', help='epoch weight loss')
     args = parser.parse_args()
     return args
 

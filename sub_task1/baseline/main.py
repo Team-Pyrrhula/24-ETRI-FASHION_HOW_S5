@@ -7,7 +7,7 @@ from loose import create_criterion
 from optimizer import create_optimizer
 
 from config import BaseConfig, MAEConfig
-from transform import BaseAug, CustomAug, InferenceAug
+from transform import BaseAug, CustomAug, InferenceAug, CustomAugV2
 from dataset import ETRI_Dataset, Sampler_Dataset
 from model import ETRI_model, ETRI_MAE_model, MAE_Model
 from torch.utils.data import DataLoader, WeightedRandomSampler
@@ -107,7 +107,6 @@ def main():
         config.DAILY_LOSS_WEIGHT = daily_weight.tolist()
         config.GNEDER_LOSS_WEIGHT = gender_weight.tolist()
         config.EMBEL_LOSS_WEIGHT = embel_weight.tolist()
-        print(daily_weight, gender_weight, embel_weight)
     else:
         daily_weight = None
         gender_weight = None
@@ -115,6 +114,13 @@ def main():
     
     config.CLASS_WEIGHT = args.class_weight
     config.WEIGHT_TYPE = args.weight_type
+
+    if args.epoch_weight:
+        singularity = 10
+    else:
+        singularity = None
+    config.EPOCH_WEIGHT = args.epoch_weight
+    config.SINGULARITY = singularity
 
     #wandb project logging
     if (args.wandb):
@@ -126,7 +132,7 @@ def main():
         wandb_config = {key: value for key, value in config.__dict__.items() if not key.startswith('_')}
         wandb.config.update(wandb_config)
 
-    train_transform = CustomAug(config.RESIZE)
+    train_transform = CustomAugV2(config.RESIZE)
     val_transform = InferenceAug(config.RESIZE)
 
     #Make dataset (smapler 기준으로)
@@ -192,11 +198,18 @@ def main():
     else:
         model = ETRI_model(config).to(config.DEVICE)
 
-    criterion = {
-        'daily' : create_criterion(config.CRITERION, weight=daily_weight).to(config.DEVICE),
-        'gender' :create_criterion(config.CRITERION, weight=gender_weight).to(config.DEVICE),
-        'embel' : create_criterion(config.CRITERION, weight=embel_weight).to(config.DEVICE)
-    }
+    if config.EPOCH_WEIGHT:
+        criterion = {
+            'daily' : create_criterion(config.CRITERION, weight=daily_weight, singularity=singularity, device=config.DEVICE).to(config.DEVICE),
+            'gender' :create_criterion(config.CRITERION, weight=gender_weight, singularity=singularity, device=config.DEVICE).to(config.DEVICE),
+            'embel' : create_criterion(config.CRITERION, weight=embel_weight, singularity=singularity, device=config.DEVICE).to(config.DEVICE)
+        }
+    else:
+        criterion = {
+            'daily' : create_criterion(config.CRITERION, weight=daily_weight).to(config.DEVICE),
+            'gender' :create_criterion(config.CRITERION, weight=gender_weight).to(config.DEVICE),
+            'embel' : create_criterion(config.CRITERION, weight=embel_weight).to(config.DEVICE)
+        }
     optimizer = create_optimizer(
                 config.OPTIMIZER,
                 params = model.parameters(),
@@ -208,7 +221,6 @@ def main():
         step_size=config.SCHEDULER_STEP_SIZE, 
         gamma=config.SCHEDULER_GAMMA,
     )
-    
     #sampler train 
     if config.TRAIN_SAMPLER:
         logs = sampler_train_run(model, train_dataloader_dict, val_dataloader_dict, criterion, optimizer, scheduler, config, args, wandb)

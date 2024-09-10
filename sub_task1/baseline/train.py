@@ -89,6 +89,13 @@ def train_run(
             ## logging
             if count % config.TRAIN_METRICS_ITER == 0:
                 print(f'TRAIN LOSSES : {train_loss / (count * config.TRAIN_BATCH_SIZE):.4f}')
+
+        # if config.EPOCH_WEIGHT epoch update
+        if config.EPOCH_WEIGHT:
+            criterion['daily'].update_epoch(epoch)
+            criterion['gender'].update_epoch(epoch)
+            criterion['embel'].update_epoch(epoch)
+            
         #calculate confusion matrix
         for key in ['l1', 'l2', 'l3']:
             t_cm = confusion_matrix(train_true[key], train_pred[key])
