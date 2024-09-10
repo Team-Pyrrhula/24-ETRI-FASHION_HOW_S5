@@ -32,7 +32,6 @@ class CustomAug:
         if xy_minmax is not None:
             crop = A.OneOf([
                 A.Crop(x_min=xy_minmax[0], y_min=xy_minmax[1], x_max=xy_minmax[2], y_max=xy_minmax[3]),
-                A.NoOp(),
-            ])
+            ], p=0.3)
             image = crop(image=image)["image"]
         return self.transform(image=image)["image"]

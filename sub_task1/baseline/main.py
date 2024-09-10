@@ -74,7 +74,7 @@ def main():
         save_path=args.save_path,
         model_save_type=args.model_save_type,
         val_metric=args.val_metric,
-        train_sampler=args.train_sampler,
+        train_sampler=args.train_sampler,   
         val_sampler=args.val_sampler,
         sampler_type=args.sampler_type,
         deep_head=deep_head,
@@ -88,7 +88,7 @@ def main():
     # class weight
     if (args.class_weight):
 
-        daily_accuracies = [0.01, 0.77, 0.46, 0.47, 0.40, 0.94]
+        daily_accuracies = [0.11, 0.77, 0.46, 0.47, 0.40, 0.94]
         gender_accuracies = [0.18, 0.47, 0.50, 0.78, 0.56]
         embel_accuracies = [0.75, 0.48, 0.59]
 
@@ -104,7 +104,10 @@ def main():
             daily_weight = torch.FloatTensor(calculate_weights_capped(daily_accuracies))
             gender_weight = torch.FloatTensor(calculate_weights_capped(gender_accuracies))
             embel_weight = torch.FloatTensor(calculate_weights_capped(embel_accuracies))
-
+        config.DAILY_LOSS_WEIGHT = daily_weight.tolist()
+        config.GNEDER_LOSS_WEIGHT = gender_weight.tolist()
+        config.EMBEL_LOSS_WEIGHT = embel_weight.tolist()
+        print(daily_weight, gender_weight, embel_weight)
     else:
         daily_weight = None
         gender_weight = None
