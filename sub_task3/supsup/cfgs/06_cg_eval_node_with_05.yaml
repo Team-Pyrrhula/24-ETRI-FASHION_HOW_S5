@@ -1,0 +1,41 @@
+# global options >> lb 0.6990358
+global:
+  seed: 2024
+  mode: 'train'
+  num_tasks: 6
+  use_multimodal: False
+
+path:
+  in_file_trn_dialog: '/aif/data/task1.ddata.wst.txt'
+  in_file_tst_dialog: '/aif/data/cl_eval_task1.wst.dev'
+  in_file_fashion: '/aif/data/mdata.wst.txt.2023.08.23'
+  in_file_img_feats: '/aif/data/extracted_feat.json'
+  model_path: './model'
+  model_file: '06_cg_eval_node_with_05.pt' # 임시 값
+  subWordEmb_path: '/aif/sstm_v0p5_deploy/sstm_v4p49_np_n36134_d128.dat'
+
+data:
+  permutation_iteration: 6
+  num_augmentation: 5
+  corr_thres: 0.9
+  mem_size: 16
+
+model:
+  etc:
+    use_batch_norm: False
+    use_dropout: False
+    zero_prob: 0.0
+
+  ReqMLP:
+    out_size: 300
+    req_node: '[2000,1000,500]'
+  
+  PolicyNet:
+    eval_node: '[6000,3000,1000,500][2000]'
+
+exp:
+  learning_rate: 0.0001
+  max_grad_norm: 40.0 # deprecated
+  batch_size: 100
+  epochs: 10
+  evaluation_iteration: 10
