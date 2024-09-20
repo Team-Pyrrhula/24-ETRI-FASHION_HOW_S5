@@ -92,7 +92,6 @@ def load_cfg(cfg_path: str) -> dict:
     return cfg_dict    
 
 
-# TODO: task id 없이 구현
 def save_results(exp_name: str, score: float, task_id: int, 
                  mode: str = 'eval', save_dir: str = 'results') -> None:
     """실험 결과를 csv 파일에 누적합니다.
