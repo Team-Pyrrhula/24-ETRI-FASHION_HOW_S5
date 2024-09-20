@@ -17,7 +17,7 @@ def mask_init(module):
 def signed_constant(module):
     """weights를 동일한 값(std)으로 설정하되, 부호를 무작위로 부여하는 초기화 방법
     """
-    fan = nn.init._calculate_correct_fan(module.weight, 'fan_in') # ?
+    fan = nn.init._calculate_correct_fan(module.weight, 'fan_in')
     gain = nn.init.calculate_gain('relu')
     std = gain / math.sqrt(fan)
     

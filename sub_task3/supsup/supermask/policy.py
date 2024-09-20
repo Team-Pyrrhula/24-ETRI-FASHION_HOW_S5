@@ -38,13 +38,18 @@ from supermask.linear import MultitaskMaskLinear
 
 
 class PolicyNet(nn.Module):
+    """대화문 임베딩 벡터로부터 추출한 feature와 패션 코디 조합에 대한 임베딩 벡터를 기반으로,
+    evaluationMLP로 한번 더 feature를 추출한 뒤, rankingMLP로 순위를 예측합니다.
+    """
     def __init__(self, emb_size: int = 128, out_size: int = 300, 
                  meta_size: int = 4, coordi_size: int = 4, num_rnk: int = 3,
                  eval_node: str = '[6000,6000,200][2000]',
                  use_batch_norm: bool = False, use_dropout: bool = False, 
                  zero_prob: float = 0.5, use_multimodal: bool = False,
-                 img_feat_size: int = 4096, num_tasks: int = 6, name='PolicyNet'):
-        
+                 img_feat_size: int = 4096, mode: str = 'train',
+                 pred_option: str = 'scores', num_tasks: int = 6, name='PolicyNet') -> None:
+        """evaluationMLP와 rankingMLP로 구성된 PolicyNet 아키텍처를 build합니다.
+        """
         super(PolicyNet, self).__init__()
         self._num_rnk = num_rnk
 
@@ -72,7 +77,9 @@ class PolicyNet(nn.Module):
                 MultitaskMaskLinear(
                     num_in,
                     num_out,
-                    num_tasks=num_tasks,
+                    scenario={'mode': mode,
+                              'pred_option': pred_option,
+                              'num_tasks': num_tasks},
                     bias=False
                 )
             )
@@ -109,7 +116,9 @@ class PolicyNet(nn.Module):
                     MultitaskMaskLinear(
                         num_in,
                         num_out,
-                        num_tasks=num_tasks,
+                        scenario={'mode': mode,
+                                  'pred_option': pred_option,
+                                  'num_tasks': num_tasks},
                         bias=False
                     )
                 )
@@ -121,7 +130,9 @@ class PolicyNet(nn.Module):
                     MultitaskMaskLinear(
                         num_in,
                         num_out,
-                        num_tasks=num_tasks,
+                        scenario={'mode': mode,
+                                  'pred_option': pred_option,
+                                  'num_tasks': num_tasks},
                         bias=False
                     )
                 )

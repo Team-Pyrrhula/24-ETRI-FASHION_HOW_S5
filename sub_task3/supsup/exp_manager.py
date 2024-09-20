@@ -6,13 +6,8 @@ from torch.utils.data import TensorDataset, DataLoader
 
 # built-in library
 import os
-import joblib
-import shutil
-import time
 import timeit
-import re
 from tqdm import tqdm
-import argparse
 
 # external library
 import numpy as np
@@ -22,7 +17,7 @@ from scipy import stats
 from file_io import *
 from exp_utils import save_results
 from supermask.base import SupSupMLP
-from supermask.utils import set_model_task, cache_masks, set_num_tasks_learned
+from supermask.utils import set_model_task, cache_masks, rm_scores
 
 
 ### global params ###
@@ -53,6 +48,7 @@ class Manager(object):
         self._device = device
         self._exp_name = exp_name
         self._mode = global_cfg['mode']
+        self._pred_option = global_cfg['pred_option']
         self._num_tasks = global_cfg['num_tasks']
 
         # path variables
@@ -100,7 +96,7 @@ class Manager(object):
                                 self._meta_size, self._coordi_size, self._num_rnk,
                                 model_cfg['ReqMLP']['req_node'], model_cfg['PolicyNet']['eval_node'],
                                 model_cfg['etc']['use_batch_norm'], use_dropout, model_cfg['etc']['zero_prob'],
-                                global_cfg['use_multimodal'], feats_size)
+                                global_cfg['use_multimodal'], feats_size, self._mode, self._pred_option, self._num_tasks)
         
         # check model
         for name, param in self._model.named_parameters():
@@ -114,6 +110,7 @@ class Manager(object):
             
             # loss function
             self._criterion = nn.CrossEntropyLoss()
+
 
     def _get_loss(self, batch: List[torch.tensor]) -> torch.tensor:
         """loss를 구합니다.
@@ -130,7 +127,12 @@ class Manager(object):
 
         return loss
     
-    def prepare_data(self):
+
+    def prepare_data(self) -> None:
+        """self._mode에 따라 학습/평가 데이터셋을 생성합니다.
+        24.09.20 기준 ['train'], ['eval', 'test', 'pred'] 모드가 존재하며,
+        ['eval', 'test', 'pred'] 모드는 모두 동일한 데이터셋 생성 로직을 사용합니다.
+        """
         # 학습용 데이터 준비
         if self._mode == 'train':
             self._dlg, self._crd, self._rnk = make_io_data('prepare', 
@@ -160,9 +162,23 @@ class Manager(object):
         
             self._num_examples = len(self._tst_dlg)
 
-    def _calculate_weighted_kendall_tau(self, pred, label, rnk_lst):
-        """
-        calcuate Weighted Kendall Tau Correlation
+
+    def _calculate_weighted_kendall_tau(self, pred: np.array, label: np.array, rnk_lst: np.array) -> float:
+        """WKT(Weighted Kendall Tau correlation) score를 계산하여 반환합니다.
+
+        Args:
+            pred (np.array): 입력 조합에 대해 모델이 예측한 순위입니다.
+            label (np.array): 입력 조합의 실제 순위입니다.
+            rnk_lst (np.array): 아이템 배치 순서를 나타내는 순열입니다.
+                - ex) num_rank: 3 >> np.array([[0, 1, 2], # rank 0
+                                                [0, 2, 1], # rank 1
+                                                [1, 0, 2], # rank 2
+                                                [1, 2, 0], # rank 3
+                                                [2, 0, 1], # rank 4
+                                                [2, 1, 0]]) # rank 5
+
+        Returns:
+            float: -1 ~ 1 사이의 WKT score입니다.
         """
         total_count = 0
         total_corr = 0
@@ -173,6 +189,7 @@ class Manager(object):
             total_count += 1
 
         return (total_corr / total_count)
+
 
     def _evaluate(self, eval_dlg: np.array, eval_crd: np.array) -> tuple:
         """모델 성능을 평가합니다.
@@ -241,9 +258,18 @@ class Manager(object):
 
         return repeated_preds, np.array(eval_corr), eval_num_examples
 
-    def _predict(self, eval_dlg, eval_crd):
-        """
-        predict
+
+    def _predict(self, eval_dlg: np.array, eval_crd: np.array) -> tuple:
+        """평가용 데이터셋에 대한 모델의 예측 결과를 구할 때 사용합니다.
+
+        Args:
+            eval_dlg (np.array): 평가용 대화문 임베딩 벡터입니다.
+            eval_crd (np.array): 평가용 코디 조합 임베딩 벡터입니다.
+
+        Returns:
+            tuple: 
+                - pred: 모델이 예측한 순위입니다.
+                - eval_num_examples: 평가 데이터셋의 개수입니다.
         """
         eval_num_examples = eval_dlg.shape[0]
 
@@ -266,8 +292,11 @@ class Manager(object):
         preds = np.array(preds)
 
         return preds, eval_num_examples    
+    
 
     def train(self):
+        """모델을 학습하기 위해 사용합니다.
+        """
         print('\n<Train>')
         print('total examples in dataset: {}'.format(self._num_examples))
 
@@ -311,10 +340,7 @@ class Manager(object):
             print('Time: {:.2f}sec'.format(time_end - time_start))
             print('Loss: {:.4f}'.format(torch.mean(torch.tensor(losses))))
             print('-'*50)
-        
-        # 최종 weight 파일 저장
-        file_name_final = os.path.join(self._model_path, f'{self._exp_name}.pt')
-        torch.save({'model': self._model.state_dict()}, file_name_final)
+
 
     def test(self, task_id) -> np.array:
         """모델 성능을 평가하고 기록합니다.
@@ -337,7 +363,11 @@ class Manager(object):
         save_results(exp_name=self._exp_name, score=np.mean(test_corr),
                      task_id=task_id, mode=self._mode)
 
+
     def continual_learning(self):
+        """학습하고자 하는 task의 개수만큼 학습 및 평가를 반복하는
+        연속학습 함수입니다.
+        """
         prev_task = 'task1'
         
         for i in range(self._num_tasks):
@@ -361,16 +391,30 @@ class Manager(object):
                 
             prev_task = f'task{i + 1}'
 
-        # # TODO: 코드 위치 확인
-        # # 학습을 마친 binary mask 등록
-        # cache_masks(self._model)
-        # print()
-        # set_num_tasks_learned(self._model, i + 1)
-        # print()
+        # pred 과정에서 binary masks만 사용하길 원한다면
+        if self._pred_option == 'masks':
+            # 1. binary masks를 buffer에 저장
+            cache_masks(self._model)
+            print()
 
-    # TODO: lb 제출을 위한 예측 코드 구현
-    def pred(self, task_id: int):
-        """리더보드 제출 시 사용합니다.
+            # 2. 추론에 불필요한 scores 삭제
+            rm_scores(self._model)
+            print()
+
+        # 최종 weight 파일 저장(self._pred_option 따라 scores만 저장하거나 masks만 저장하게 됨)
+        file_name_final = os.path.join(self._model_path, f'{self._exp_name}.pt')
+        torch.save({'model': self._model.state_dict()}, file_name_final)
+
+
+    def pred(self, task_id: int = None) -> np.array:
+        """평가용 데이터셋에 대한 모델의 예측 결과를 구합니다.
+        sub_task3 리더보드 제출 시 사용합니다.
+
+        Args:
+            task_id (int, optional): 추론 시 사용할 task id입니다. Defaults to None.
+
+        Returns:
+            np.array: 모델이 예측한 순위입니다.
         """
         print('\n<Predict>')
 

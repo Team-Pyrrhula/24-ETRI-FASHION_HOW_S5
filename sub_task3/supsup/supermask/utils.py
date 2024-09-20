@@ -19,6 +19,15 @@ def cache_masks(model):
         if isinstance(m, MultitaskMaskLinear):
             print(f"=> Caching mask state for {n}")
             m.cache_masks()
+
+def rm_scores(model):
+    """binary masks만 이용하여 예측하고자 할 때
+    불필요한 scores parameters를 삭제
+    """
+    for n, m in model.named_modules():
+        if isinstance(m, MultitaskMaskLinear):
+            print(f"=> Delete scores for {n}")            
+            m.rm_scores()
             
 def set_num_tasks_learned(model, num_tasks_learned):
     """현재까지 학습한 task의 개수를 model 객체의 변수로 등록

@@ -27,15 +27,12 @@ SOFTWARE.
 Update: 2022.06.16.
 '''
 # built-in library
-import sys
 import re
 import os
 import json
 from itertools import permutations
-import csv
 import codecs
 import _pickle as pickle
-from ctypes import cdll, create_string_buffer
 from typing import List
 
 # external library
@@ -451,7 +448,7 @@ class SubWordEmbReaderUtil:
             - euc-kr에서 b'\xca\xa1'과 b'\xfd\xfe'는 한자의 시작과 끝을 의미합니다.)
             - Reference: https://i18nl10n.com/korean/euckr.html)
         
-        *e와 h로 대체하는 이유에 대해선 모름
+        note: e와 h로 대체하는 이유에 대해선 모름
 
         Args:
             s (str): 특징 기술 문장을 구성하는 단어입니다.
@@ -663,8 +660,7 @@ def _vectorize(swer:SubWordEmbReaderUtil, data: List[List[str]]) -> np.array:
 
     return vec
     
-# TODO: 불필요한 대화문 제거(train <-> eval data 구성 방식 차이 완화를 위함)
-# TODO: MemN2N 논문 리뷰
+
 def _memorize(dialog: np.array, mem_size: int, emb_size: int) -> np.array:
     """대화문 데이터(dialog) 중 기억하고자 하는 부분(mem_size)만큼 남깁니다.
 
@@ -841,7 +837,6 @@ def _make_ranking_examples(dialog: List[List[str]], coordi: List[List[List[str]]
     return data_dialog, data_coordi, data_rank
 
 
-# TODO: 증강 조건식 변경
 def _replace_item(crd: List[str], item2idx: List[dict], idx2item: List[dict],
                   similarities: np.array, pos: List[int], thres: float) -> List[str]:
     """기존 코디 조합(crd) 중 대상 카테고리(pos)의 아이템을 교체합니다.
@@ -1193,7 +1188,7 @@ def shuffle_coordi_and_ranking(coordi: np.array, num_rank: int) -> tuple:
 
     return data_coordi_rand, data_rank
 
-# TODO: docstring 마무리
+# deprecated
 def _load_fashion_feature(file_name, slot_name, coordi_size, feat_size):
     """
     function: load image features

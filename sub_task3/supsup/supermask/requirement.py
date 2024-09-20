@@ -27,22 +27,48 @@ SOFTWARE.
 Update: 2022.06.16.
 '''
 # torch
+import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 # custom modules
 from supermask.linear import MultitaskMaskLinear
 
 
 class RequirementMLP(nn.Module):
+    """대화문 임베딩 벡터로부터 사용자의 요구사항에 대한 feature를 추출하는 MLP 모델입니다.
+    """
     def __init__(self, mem_size: int = 16, emb_size: int = 128,
                  architecture: str = '[2000,1000,500]',
                  use_dropout: bool = False, zero_prob: float = 0.25,
                  use_batchnorm: bool = False, out_size: int = 300,
-                 num_tasks: int = 6) -> None:
+                 mode: str = 'train', pred_option: str = 'scores', num_tasks: int = 6) -> None:
+        """RequirementMLP 아키텍처를 build합니다.
+
+        Args:
+            mem_size (int, optional): 대화문 임베딩 벡터의 길이입니다. Defaults to 16.
+            emb_size (int, optional): 임베딩 벡터의 크기입니다. Defaults to 128.
+            architecture (str, optional): RequirementMLP의 노드 구성입니다. Defaults to '[2000,1000,500]'.
+            use_dropout (bool, optional): dropout을 적용할지 선택합니다. Defaults to False.
+            zero_prob (float, optional): dropout 확률을 설정합니다. Defaults to 0.25.
+            use_batchnorm (bool, optional): batch normalization을 적용할지 선택합니다. Defaults to False.
+            out_size (int, optional): 최종 출력 벡터의 크기입니다. Defaults to 300.
+            mode (str, optional): 
+                - 실행할 모드를 선택합니다. 
+                - train/eval/test/pred의 네 가지 모드가 존재합니다. 
+                - Defaults to 'train'.
+                
+            pred_option (str, optional): 
+                - 추론 방식을 선택합니다. 
+                - 'scores'와 'masks'가 존재하며, 'scores' 선택 시 edge pop-up score로,
+                    'masks' 선택 시 binary mask로 추론하게 됩니다.
+                - Defaults to 'scores'.
+                - note: 'masks' 옵션을 사용하기 위해선, 모델을 학습할 때도 'masks' 옵션을 설정해주어야 합니다.
+
+            num_tasks (int, optional): 학습하고자 하는 총 task(dataset)의 개수입니다. Defaults to 6.
+        """
+
         super(RequirementMLP, self).__init__()
         
-        self.mem_size = mem_size
         self.emb_size = emb_size
         self.num_in = mem_size * emb_size
 
@@ -60,7 +86,9 @@ class RequirementMLP(nn.Module):
                     MultitaskMaskLinear(
                         num_in,
                         num_out,
-                        num_tasks=num_tasks,
+                        scenario={'mode': mode,
+                                  'pred_option': pred_option,
+                                  'num_tasks': num_tasks},
                         bias=False
                     )
                 )
@@ -71,7 +99,9 @@ class RequirementMLP(nn.Module):
                     MultitaskMaskLinear(
                         num_in,
                         num_out,
-                        num_tasks=num_tasks,
+                        scenario={'mode': mode,
+                                  'pred_option': pred_option,
+                                  'num_tasks': num_tasks},
                         bias=False
                     )
                 )
@@ -80,15 +110,23 @@ class RequirementMLP(nn.Module):
                 if use_dropout:
                     model.append(nn.Dropout(p=zero_prob))
 
-                # TODO: BatchNorm 파라미터도 score를 부여해야 하나?
                 if use_batchnorm:
                     model.append(nn.BatchNorm1d())
 
                 num_in = num_out
 
         self.model = nn.Sequential(*model)
+        
 
-    def forward(self, x):
+    def forward(self, x: torch.tensor) -> torch.tensor:
+        """just forward
+
+        Args:
+            x (torch.tensor): 대화문 임베딩 벡터입니다.
+
+        Returns:
+            torch.tensor: 대화문 임베딩 벡터로부터 추출한 feature입니다.
+        """
         req = self.model(x)
 
         return req
