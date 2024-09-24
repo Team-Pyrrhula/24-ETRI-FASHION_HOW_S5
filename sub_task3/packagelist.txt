@@ -1,3 +1,0 @@
-# packages in environment at /home/nstalways00/miniconda3/envs/sub3_baseline:
-#
-# Name                    Version                   Build  Channel
