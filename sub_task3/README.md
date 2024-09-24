@@ -18,9 +18,8 @@
 
 - **Note: 리더보드에 제출한 모델의 경우 Kaggle Notebook을 통해 실험했기 때문에, 로컬 서버에서 실험 시 성능에 차이가 있을 수 있습니다. 동일한 성능 재현이 필요한 경우 Kaggle Notebook 사용을 권장드립니다.**
 1. Kaggle을 원활하게 사용하기 위해선 가입이 필요합니다. gmail 등을 이용하여 가입해주세요.
-1. [실험 노트북 링크](https://www.kaggle.com/code/nstalways20/2024-etri-fashion-how-s5-subtask3-final-code?scriptVersionId=198060972)를 클릭한 뒤, `copy & edit` 버튼을 클릭하여 새 노트북을 만듭니다.
-1. `Settings -> Accelerator -> GPU P100`을 설정합니다.
-1. `Run All` 버튼을 클릭하여 전체 셀을 실행합니다.
+1. [실험 노트북 링크](https://www.kaggle.com/code/nstalways20/2024-etri-fashion-how-s5-subtask3-final-code?scriptVersionId=198060972)를 클릭한 뒤, `copy & edit` 버튼을 클릭하여 복사본을 만듭니다.
+1. `Settings -> Accelerator -> GPU P100`을 설정한 뒤, `Run All` 버튼을 클릭하여 전체 셀을 실행합니다.
 1. 최종 실험 결과를 확인합니다.
 ---
 **Training (on Local)**
