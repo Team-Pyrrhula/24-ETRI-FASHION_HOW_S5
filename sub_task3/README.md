@@ -14,13 +14,21 @@
 ### 리더보드 성능 재현을 위한 코드 사용법
 - **Model Size** `345.7167MB`, **WKT Score** `0.7151515`를 기록한 모델을 재현하는 방법에 대해 설명합니다.
 ---
-**Training**
+**Training (on Kaggle) (highly recommended)**
+
+- **Note: 리더보드에 제출한 모델의 경우 Kaggle Notebook을 통해 실험했기 때문에, 로컬 서버에서 실험 시 성능에 차이가 있을 수 있습니다. 동일한 성능 재현이 필요한 경우 Kaggle Notebook 사용을 권장드립니다.**
+1. Kaggle을 원활하게 사용하기 위해선 가입이 필요합니다. gmail 등을 이용하여 가입해주세요.
+1. [실험 노트북 링크](https://www.kaggle.com/code/nstalways20/2024-etri-fashion-how-s5-subtask3-final-code?scriptVersionId=198060972)를 클릭한 뒤, `copy & edit` 버튼을 클릭하여 새 노트북을 만듭니다.
+1. `Settings -> Accelerator -> GPU P100`을 설정합니다.
+1. `Run All` 버튼을 클릭하여 전체 셀을 실행합니다.
+1. 최종 실험 결과를 확인합니다.
+---
+**Training (on Local)**
+
 1. 본 repository를 clone합니다.
-1. `requirements.txt`를 기반으로 실험 환경을 구축합니다.
-    - `python==3.10.14`를 사용합니다.
-    - **Note: Kaggle Notebook을 활용해 실험을 진행했던 관계로, 로컬 서버에서 실험 시 환경 차이에 따른 성능 차이가 있을 수 있습니다.**
+1. `python==3.10.14`, `requirements.txt`를 기반으로 실험 환경을 구축합니다.
 1. `supsup` 디렉토리로 이동합니다.
-1. **`cfgs/09_dec_model_size_with_08_masks.yaml` 파일을 열어 `path` 관련 인자들을 수정합니다.**
+1. **`cfgs/09_dec_model_size_with_08_masks.yaml` 파일을 열어 `path` 관련 인자(data, embedding 등)들을 수정합니다.**
 
     ```yaml
     # global options >> lb wkt 0.7151515, weight size 345.7167
@@ -68,8 +76,8 @@
     ```
 
 1. 터미널에서 `python main.py --cfg_path ./cfgs/09_dec_model_size_with_masks.yaml` 명령어를 입력한 뒤, 정상적으로 실험이 진행되는지 확인합니다.
-    - Train, validation으로 구성되어 있는 한 번의 실험이 총 6번(task 개수만큼) 진행됩니다.
-1. 실험이 끝나면 `model/` 디렉토리 아래에 yaml 파일 내부에 작성한 `model_file` 이름으로 weight file이 저장됩니다.
+    - Train, validation으로 구성되어있는 한 번의 실험이 총 6번(task 개수만큼) 진행됩니다.
+1. 실험이 끝나면 yaml 파일 내부에 작성한 `model_file` 이름으로 `model/` 디렉토리 아래에 weight file이 저장됩니다.
 ---
 **Prediction**
 - **본 대회의 리더보드 제출 방식 특성 상, 추론 과정은 Python 모듈이 아닌 Jupyter Notebook**을 통해 이루어집니다.
