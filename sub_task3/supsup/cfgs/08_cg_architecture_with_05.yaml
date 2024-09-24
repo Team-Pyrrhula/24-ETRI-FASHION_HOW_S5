@@ -2,17 +2,18 @@
 global:
   seed: 2024
   mode: 'train'
+  pred_option: 'scores'
   num_tasks: 6
   use_multimodal: False
 
 path:
-  in_file_trn_dialog: '/aif/data/task1.ddata.wst.txt'
-  in_file_tst_dialog: '/aif/data/cl_eval_task1.wst.dev'
-  in_file_fashion: '/aif/data/mdata.wst.txt.2023.08.23'
-  in_file_img_feats: '/aif/data/extracted_feat.json'
+  in_file_trn_dialog: '../aif/data/task1.ddata.wst.txt'
+  in_file_tst_dialog: '../aif/data/cl_eval_task1.wst.dev'
+  in_file_fashion: '../aif/data/mdata.wst.txt.2023.08.23'
+  in_file_img_feats: '../aif/data/extracted_feat.json'
   model_path: './model'
   model_file: '08_cg_architecture_with_05.pt' # 임시 값
-  subWordEmb_path: '/aif/sstm_v0p5_deploy/sstm_v4p49_np_n36134_d128.dat'
+  subWordEmb_path: '../aif/sstm_v0p5_deploy/sstm_v4p49_np_n36134_d128.dat'
 
 data:
   permutation_iteration: 6
