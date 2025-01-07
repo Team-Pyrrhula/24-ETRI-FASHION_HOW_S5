@@ -22,7 +22,7 @@ def etri_sampler(df:pd.DataFrame, sampling_columns:list=['Daily', 'Gender', 'Emb
 
         # types = min인 경우
         if types == 'm':
-            min_len = data_count[min(data_count)]
+            min_len = data_count[min(data_count, key=lambda x: data_count[x])]
 
             for key in data_count.keys():
                 target = df[df[col] == key]
